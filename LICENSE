@@ -1,0 +1,62 @@
+SecFlow Source-Available Commercial Non-Redistribution License
+Version 1.0
+
+Copyright (c) 2026 ShenSiQi.
+All rights reserved.
+
+This software and its source code are made publicly available for review,
+evaluation, learning, and internal non-production testing only.
+
+1. Permitted Use
+
+You may:
+
+- View and study the source code.
+- Clone and run the software for personal evaluation.
+- Modify the software for private internal evaluation.
+- Use the software as a reference for security research and education.
+
+2. Commercial License Required
+
+A separate written commercial license from ShenSiQi is required for:
+
+- Production deployment.
+- Commercial use.
+- Internal enterprise use beyond evaluation.
+- SaaS, hosted, or managed-service operation.
+- Integration into a commercial product or service.
+- Customer delivery, resale, sublicensing, or monetized distribution.
+
+3. Redistribution Prohibited
+
+You may not, without prior written permission from ShenSiQi:
+
+- Redistribute the source code or binaries.
+- Publish modified or unmodified copies.
+- Mirror this repository.
+- Sell, rent, sublicense, or transfer the software.
+- Package this software into another public repository, product, or service.
+- Remove or alter copyright, license, author, or attribution notices.
+
+4. No Trademark Grant
+
+This license does not grant any right to use the names "SecFlow",
+"SecFlow AI", "ShenSiQi", or any related marks, logos, or branding.
+
+5. No Warranty
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. IN NO EVENT SHALL
+THE AUTHOR OR COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+LIABILITY ARISING FROM THE SOFTWARE OR ITS USE.
+
+6. Termination
+
+Any violation of this license immediately terminates your rights to use,
+copy, run, or modify the software.
+
+7. Author
+
+Author and copyright holder: ShenSiQi.
+
