@@ -29,6 +29,12 @@ class CollectorConfigUpdate(BaseModel):
 class AskRequest(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
     top_k: int = Field(default=5, ge=1, le=20)
+    user_id: str = Field(default="default", min_length=1, max_length=120)
+    session_id: str = Field(default="default", min_length=1, max_length=120)
+
+
+class MemoryClearRequest(BaseModel):
+    user_id: str = Field(default="default", min_length=1, max_length=120)
 
 
 class VulnerabilityRecord(BaseModel):
@@ -40,4 +46,3 @@ class VulnerabilityRecord(BaseModel):
     references: list[str] = Field(default_factory=list)
     collection: str = "cve"
     updated_at: str = ""
-

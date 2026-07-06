@@ -7,8 +7,9 @@ from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.collectors import collector_service
-from app.graph import knowledge_graph
-from app.models import ApiResponse, AskRequest, CollectorConfigUpdate
+from app.graph import knowledge_graph, runtime_status
+from app.memory import memory_service
+from app.models import ApiResponse, AskRequest, CollectorConfigUpdate, MemoryClearRequest
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -43,7 +44,9 @@ def health():
 
 @app.get("/api/config", response_model=ApiResponse)
 def config():
-    return ok(collector_service.snapshot(), "Configuration loaded.")
+    snapshot = collector_service.snapshot()
+    snapshot["runtime"] = runtime_status()
+    return ok(snapshot, "Configuration loaded.")
 
 
 @app.patch("/api/config/{collector_id}", response_model=ApiResponse)
@@ -80,10 +83,27 @@ def vulnerabilities():
 
 @app.post("/api/ask", response_model=ApiResponse)
 def ask(payload: AskRequest):
-    return ok(knowledge_graph.invoke(payload.question, payload.top_k), "Assistant response generated.")
+    return ok(
+        knowledge_graph.invoke(
+            payload.question,
+            payload.top_k,
+            user_id=payload.user_id,
+            session_id=payload.session_id,
+        ),
+        "Assistant response generated.",
+    )
 
 
 @app.get("/api/graph", response_model=ApiResponse)
 def graph():
     return ok(knowledge_graph.graph_spec(), "LangGraph specification loaded.")
 
+
+@app.get("/api/runtime", response_model=ApiResponse)
+def runtime():
+    return ok(runtime_status(), "Runtime status loaded.")
+
+
+@app.delete("/api/memory", response_model=ApiResponse)
+def clear_memory(payload: MemoryClearRequest):
+    return ok(memory_service.clear_history(payload.user_id), "Memory cleared.")

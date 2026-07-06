@@ -50,6 +50,13 @@ body {
   margin-bottom: 20px;
 }
 
+.runtime-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: -6px 0 20px;
+}
+
 .eyebrow,
 .stat-pill {
   display: inline-flex;
@@ -62,6 +69,18 @@ body {
   padding: 6px 12px;
   font-size: 12px;
   font-weight: 700;
+}
+
+.stat-pill.ok {
+  border-color: rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.12);
+  color: #bbf7d0;
+}
+
+.stat-pill.warn {
+  border-color: rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.11);
+  color: #fde68a;
 }
 
 h1,
@@ -214,6 +233,40 @@ button.ghost,
   line-height: 1.7;
 }
 
+.answer p {
+  white-space: pre-wrap;
+}
+
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.meta-grid span,
+.sources span {
+  display: block;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(15, 23, 42, 0.58);
+  border-radius: 12px;
+  padding: 9px 10px;
+  color: var(--muted);
+}
+
+.meta-grid b {
+  display: block;
+  margin-bottom: 4px;
+  color: #dbeafe;
+  font-size: 12px;
+}
+
+.sources {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 12px;
+}
+
 .empty {
   color: var(--muted);
 }
@@ -236,6 +289,14 @@ button.ghost,
 .trace-item b,
 .record-item b {
   color: #dbeafe;
+}
+
+.trace-item.warning b {
+  color: #fde68a;
+}
+
+.trace-item.completed b {
+  color: #bbf7d0;
 }
 
 .trace-item span,
@@ -311,4 +372,3 @@ button.ghost,
     grid-template-columns: 1fr;
   }
 }
-

@@ -1,49 +1,50 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SecFlow Knowledge Security Assistant</title>
+    <title>SecFlow 知识库安全助手</title>
     <link rel="stylesheet" href="/static/app.css" />
   </head>
   <body>
     <main class="shell">
       <header class="hero">
         <div>
-          <span class="eyebrow">Source-available by ShenSiQi</span>
-          <h1>Knowledge Security Assistant</h1>
-          <p>LangGraph-powered AI security Q&A with CVE and GitHub Advisory collection configuration.</p>
+          <span class="eyebrow">ShenSiQi · Source-available</span>
+          <h1>知识库安全助手</h1>
+          <p>LangGraph 安全问答，保留 CVE 与 GitHub Advisory 采集配置。</p>
         </div>
         <div class="license-badge">
-          <b>Commercial License</b>
-          <span>No redistribution</span>
+          <b>商业许可</b>
+          <span>禁止再分发</span>
         </div>
       </header>
+      <div id="runtimeStatus" class="runtime-status"></div>
 
       <section class="grid">
         <article class="panel assistant-panel">
           <div class="panel-head">
             <div>
-              <h2>Security Assistant</h2>
-              <p>Ask about CVE, GHSA, supply chain, or security knowledge.</p>
+              <h2>安全知识问答</h2>
+              <p>CVE/GHSA 优先检索知识库，其他问题结合长期记忆调用模型。</p>
             </div>
-            <button id="refreshGraph" class="ghost">Graph</button>
+            <button id="refreshGraph" class="ghost">流程</button>
           </div>
           <form id="askForm" class="ask-form">
-            <textarea id="question" placeholder="Ask about CVE-2021-44228, GHSA advisories, dependency risks, or AI security..." required></textarea>
+            <textarea id="question" placeholder="请输入 CVE、GHSA、供应链风险、代码审计或 AI 安全问题..." required></textarea>
             <div class="form-actions">
-              <label>Top K <input id="topK" type="number" min="1" max="20" value="5" /></label>
-              <button type="submit">Ask Assistant</button>
+              <label>召回数 <input id="topK" type="number" min="1" max="20" value="5" /></label>
+              <button type="submit">发送问题</button>
             </div>
           </form>
-          <div id="answer" class="answer empty">No answer yet.</div>
+          <div id="answer" class="answer empty">暂无回答。</div>
         </article>
 
         <aside class="panel">
           <div class="panel-head">
             <div>
-              <h2>LangGraph Trace</h2>
-              <p>Execution path for the latest question.</p>
+              <h2>LangGraph 执行过程</h2>
+              <p>展示本次问答经过的节点。</p>
             </div>
           </div>
           <div id="trace" class="trace"></div>
@@ -53,43 +54,43 @@
       <section class="panel">
         <div class="panel-head">
           <div>
-            <h2>Collector Configuration</h2>
-            <p>Keep CVE and GitHub Advisory collection enabled and bound to local collections.</p>
+            <h2>采集配置</h2>
+            <p>配置 CVE 漏洞库与 GitHub Advisory 采集源。</p>
           </div>
-          <button id="reloadConfig" class="ghost">Reload</button>
+          <button id="reloadConfig" class="ghost">刷新</button>
         </div>
         <div class="collector-grid">
           <form class="collector-card" data-collector="cve">
-            <h3>CVE Vulnerability Database</h3>
-            <label><span>Enabled</span><input name="enabled" type="checkbox" /></label>
+            <h3>CVE 漏洞库</h3>
+            <label><span>启用</span><input name="enabled" type="checkbox" /></label>
             <label><span>NVD API URL</span><input name="api_url" /></label>
-            <label><span>NVD API Key</span><input name="api_key" type="password" placeholder="Leave blank to keep current key" /></label>
-            <label><span>Collection</span><input name="collection_name" /></label>
-            <label><span>Severity Filter</span><input name="severity_filter" placeholder="CRITICAL,HIGH,MEDIUM" /></label>
-            <label><span>Max Results</span><input name="max_results" type="number" min="1" max="5000" /></label>
-            <label><span>Interval Minutes</span><input name="sync_interval_minutes" type="number" min="5" max="10080" /></label>
+            <label><span>NVD API Key</span><input name="api_key" type="password" placeholder="留空则保留当前密钥" /></label>
+            <label><span>集合</span><input name="collection_name" /></label>
+            <label><span>等级过滤</span><input name="severity_filter" placeholder="CRITICAL,HIGH,MEDIUM" /></label>
+            <label><span>采集数量</span><input name="max_results" type="number" min="1" max="5000" /></label>
+            <label><span>间隔分钟</span><input name="sync_interval_minutes" type="number" min="5" max="10080" /></label>
             <div class="card-actions">
-              <button type="submit">Save</button>
-              <button type="button" data-action="test">Test</button>
-              <button type="button" data-action="collect">Collect</button>
+              <button type="submit">保存</button>
+              <button type="button" data-action="test">测试</button>
+              <button type="button" data-action="collect">采集</button>
             </div>
             <small class="status"></small>
           </form>
 
           <form class="collector-card" data-collector="github_advisory">
             <h3>GitHub Advisory</h3>
-            <label><span>Enabled</span><input name="enabled" type="checkbox" /></label>
+            <label><span>启用</span><input name="enabled" type="checkbox" /></label>
             <label><span>API URL</span><input name="api_url" /></label>
-            <label><span>GitHub Token</span><input name="token" type="password" placeholder="Leave blank to keep current token" /></label>
-            <label><span>Collection</span><input name="collection_name" /></label>
-            <label><span>Severity Filter</span><input name="severity_filter" placeholder="critical,high,medium" /></label>
-            <label><span>Ecosystem</span><input name="ecosystem" placeholder="npm, pip, maven..." /></label>
-            <label><span>Max Results</span><input name="max_results" type="number" min="1" max="5000" /></label>
-            <label><span>Interval Minutes</span><input name="sync_interval_minutes" type="number" min="5" max="10080" /></label>
+            <label><span>GitHub Token</span><input name="token" type="password" placeholder="留空则保留当前令牌" /></label>
+            <label><span>集合</span><input name="collection_name" /></label>
+            <label><span>等级过滤</span><input name="severity_filter" placeholder="critical,high,medium" /></label>
+            <label><span>生态</span><input name="ecosystem" placeholder="npm, pip, maven..." /></label>
+            <label><span>采集数量</span><input name="max_results" type="number" min="1" max="5000" /></label>
+            <label><span>间隔分钟</span><input name="sync_interval_minutes" type="number" min="5" max="10080" /></label>
             <div class="card-actions">
-              <button type="submit">Save</button>
-              <button type="button" data-action="test">Test</button>
-              <button type="button" data-action="collect">Collect</button>
+              <button type="submit">保存</button>
+              <button type="button" data-action="test">测试</button>
+              <button type="button" data-action="collect">采集</button>
             </div>
             <small class="status"></small>
           </form>
@@ -99,10 +100,10 @@
       <section class="panel">
         <div class="panel-head">
           <div>
-            <h2>Knowledge Records</h2>
-            <p>Local records collected from CVE and GitHub Advisory sources.</p>
+            <h2>知识记录</h2>
+            <p>来自 CVE 与 GitHub Advisory 的本地漏洞记录。</p>
           </div>
-          <span id="recordStats" class="stat-pill">0 records</span>
+          <span id="recordStats" class="stat-pill">0 条记录</span>
         </div>
         <div id="records" class="records"></div>
       </section>
@@ -110,4 +111,3 @@
     <script src="/static/app.js" type="module"></script>
   </body>
 </html>
-
