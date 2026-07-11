@@ -230,6 +230,7 @@ function bind() {
 function modeLabel(mode) {
   return {
     vulnerability_lookup: "漏洞情报回答",
+    vulnerability_year_lookup: "年份漏洞情报回答",
     supply_chain: "供应链安全回答",
     compliance: "合规安全回答",
     security_knowledge: "安全知识回答",

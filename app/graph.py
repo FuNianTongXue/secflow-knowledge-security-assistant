@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime
 from typing import Any, TypedDict
 
 try:
@@ -18,6 +19,7 @@ from app.storage import now_iso
 SYSTEM_PROMPT = """你是 SecFlow Knowledge Security Assistant，定位是安全知识助手。
 请用中文回答，语气专业、简洁、可落地。
 如果问题包含 CVE 或 GHSA 编号，优先结合漏洞知识库记录回答，并说明影响、利用条件、修复建议和参考来源。
+如果问题包含年份并询问漏洞、CVE、高危漏洞或最新漏洞，必须先结合本地漏洞 RAG 和实时 CVE 接口结果回答，再说明数据来源与可能的采集失败。
 如果问题不是具体漏洞查询，不要编造漏洞库记录；应结合长期记忆、上下文和通用安全工程经验回答。
 当模型上下文中提供了长期记忆时，只把它作为偏好和历史背景，不要泄露内部存储结构。
 """
@@ -30,6 +32,7 @@ class AssistantState(TypedDict, total=False):
     session_id: str
     intent: str
     vulnerability_id: str
+    year_filter: list[int]
     records: list[dict[str, Any]]
     memory_context: dict[str, Any]
     llm_result: dict[str, Any]
@@ -50,6 +53,7 @@ class KnowledgeSecurityGraph:
             "session_id": session_id or "default",
             "intent": "security_knowledge",
             "vulnerability_id": "",
+            "year_filter": [],
             "records": [],
             "memory_context": {},
             "llm_result": {},
@@ -85,9 +89,9 @@ class KnowledgeSecurityGraph:
             ],
             "edges": [
                 {"source": "classify_query", "target": "load_memory_context", "label": "问题分类"},
-                {"source": "load_memory_context", "target": "retrieve_local_knowledge", "label": "CVE/GHSA"},
+                {"source": "load_memory_context", "target": "retrieve_local_knowledge", "label": "CVE/GHSA/年份漏洞"},
                 {"source": "load_memory_context", "target": "call_llm", "label": "通用安全问题"},
-                {"source": "retrieve_local_knowledge", "target": "fetch_live_vulnerability", "label": "未命中精确记录"},
+                {"source": "retrieve_local_knowledge", "target": "fetch_live_vulnerability", "label": "精确漏洞未命中或年份查询"},
                 {"source": "retrieve_local_knowledge", "target": "call_llm", "label": "检索完成"},
                 {"source": "fetch_live_vulnerability", "target": "call_llm", "label": "采集完成"},
                 {"source": "call_llm", "target": "compose_answer", "label": "模型结果"},
@@ -133,10 +137,14 @@ class KnowledgeSecurityGraph:
     def _classify_query(self, state: AssistantState) -> AssistantState:
         question = state["question"]
         vuln_id = extract_vulnerability_id(question)
+        year_filter = extract_year_filter(question)
         lowered = question.lower()
         if vuln_id:
             state["intent"] = "vulnerability_lookup"
             state["vulnerability_id"] = vuln_id
+        elif year_filter and is_vulnerability_year_question(question):
+            state["intent"] = "vulnerability_year_lookup"
+            state["year_filter"] = year_filter
         elif any(word in lowered for word in ["supply chain", "dependency", "poisoning", "sbom", "sca", "供应链", "依赖"]):
             state["intent"] = "supply_chain"
         elif any(word in lowered for word in ["compliance", "policy", "control", "audit", "合规", "等保", "审计"]):
@@ -160,11 +168,39 @@ class KnowledgeSecurityGraph:
             return add_trace(state, "load_memory_context", f"长期记忆读取失败：{exc}", status="warning")
 
     def _retrieve_local_knowledge(self, state: AssistantState) -> AssistantState:
+        if state.get("intent") == "vulnerability_year_lookup":
+            records = collector_service.search_by_years(state["question"], state.get("year_filter", []), state.get("top_k", 5))
+            state["records"] = records
+            years = "、".join(str(year) for year in state.get("year_filter", []))
+            return add_trace(state, "retrieve_local_knowledge", f"已按年份 {years} 从本地漏洞 RAG 检索到 {len(records)} 条记录。")
         records = collector_service.search(state["question"], state.get("top_k", 5))
         state["records"] = records
         return add_trace(state, "retrieve_local_knowledge", f"已检索到 {len(records)} 条本地漏洞记录。")
 
     def _fetch_live_vulnerability(self, state: AssistantState) -> AssistantState:
+        if state.get("intent") == "vulnerability_year_lookup":
+            years = state.get("year_filter", [])
+            try:
+                result = collector_service.collect_cve_by_years(years, max_results=max(state.get("top_k", 5), 10))
+                live_records = result.get("records", [])
+                merged = merge_records(live_records, state.get("records", []), state.get("top_k", 5))
+                state["records"] = merged
+                year_text = "、".join(str(year) for year in years)
+                if result.get("status") != "success":
+                    return add_trace(
+                        state,
+                        "fetch_live_vulnerability",
+                        f"按年份 {year_text} 调用 CVE 接口未取得完整结果，已保留本地 RAG 的 {len(merged)} 条记录：{result.get('message')}",
+                        status="warning",
+                    )
+                return add_trace(
+                    state,
+                    "fetch_live_vulnerability",
+                    f"已按年份 {year_text} 调用 CVE 接口，获取 {len(live_records)} 条候选记录，并与本地 RAG 合并为 {len(merged)} 条。",
+                )
+            except Exception as exc:  # noqa: BLE001
+                return add_trace(state, "fetch_live_vulnerability", f"按年份调用 CVE 接口失败，保留本地 RAG 结果：{exc}", status="warning")
+
         vuln_id = state.get("vulnerability_id", "")
         if not vuln_id:
             return add_trace(state, "fetch_live_vulnerability", "未识别到漏洞编号，跳过实时采集。")
@@ -197,11 +233,17 @@ class KnowledgeSecurityGraph:
             "长期记忆": self._memory_label(state.get("memory_context", {})),
             "模型调用状态": "成功" if llm_result.get("status") == "success" else state.get("llm_error", "未调用"),
         }
+        if state.get("year_filter"):
+            fields["年份过滤"] = "、".join(str(year) for year in state.get("year_filter", []))
+            fields["漏洞数据策略"] = "年份问题已优先查询本地 RAG，并尝试调用 CVE 接口补充最新记录"
         sources = self._record_sources(records)
 
         if llm_result.get("status") == "success":
             summary = str(llm_result.get("answer", "")).strip()
             confidence = 0.82 if not records else 0.9
+        elif records and state.get("intent") == "vulnerability_year_lookup":
+            summary = build_year_vulnerability_answer(records, state.get("year_filter", []))
+            confidence = 0.76
         elif records:
             primary = records[0]
             summary = build_record_answer(primary)
@@ -242,10 +284,12 @@ class KnowledgeSecurityGraph:
 
     @staticmethod
     def _should_retrieve(state: AssistantState) -> bool:
-        return state.get("intent") == "vulnerability_lookup"
+        return state.get("intent") in {"vulnerability_lookup", "vulnerability_year_lookup"}
 
     @staticmethod
     def _should_fetch_live(state: AssistantState) -> bool:
+        if state.get("intent") == "vulnerability_year_lookup" and state.get("year_filter"):
+            return True
         vuln_id = state.get("vulnerability_id", "")
         if not vuln_id:
             return False
@@ -313,6 +357,41 @@ def extract_vulnerability_id(text: str) -> str:
     return ""
 
 
+def extract_year_filter(text: str) -> list[int]:
+    now_year = datetime.now().year
+    years = {int(item) for item in re.findall(r"(?<!\d)(20\d{2}|19\d{2})(?!\d)", text)}
+    if re.search(r"今年|本年|current year|this year", text, flags=re.IGNORECASE):
+        years.add(now_year)
+    if re.search(r"去年|上一年|last year", text, flags=re.IGNORECASE):
+        years.add(now_year - 1)
+    recent = re.search(r"近\s*([两二三四五2-5])\s*年|最近\s*([两二三四五2-5])\s*年", text)
+    if recent:
+        raw = next(group for group in recent.groups() if group)
+        count = {"两": 2, "二": 2, "三": 3, "四": 4, "五": 5}.get(raw, int(raw) if raw.isdigit() else 2)
+        years.update(now_year - offset for offset in range(count))
+    return sorted((year for year in years if 1999 <= year <= now_year + 1), reverse=True)
+
+
+def is_vulnerability_year_question(text: str) -> bool:
+    lowered = text.lower()
+    security_keywords = [
+        "cve",
+        "漏洞",
+        "高危",
+        "严重",
+        "rce",
+        "0day",
+        "zero-day",
+        "vulnerability",
+        "exploit",
+        "安全",
+        "修复",
+        "补丁",
+        "最新",
+    ]
+    return bool(extract_year_filter(text)) and any(keyword in lowered for keyword in security_keywords)
+
+
 def build_record_answer(record: dict[str, Any]) -> str:
     references = record.get("references") or []
     ref_text = f"\n参考：{references[0]}" if references else ""
@@ -321,6 +400,29 @@ def build_record_answer(record: dict[str, Any]) -> str:
         f"{record.get('id')} 已在 {record.get('collection')} 集合中命中，严重等级为 {record.get('severity')}。"
         f"{summary}。建议优先核查受影响组件版本、暴露面、可利用条件，并按官方修复版本或缓解方案处置。{ref_text}"
     )
+
+
+def build_year_vulnerability_answer(records: list[dict[str, Any]], years: list[int]) -> str:
+    year_text = "、".join(str(year) for year in years) or "指定年份"
+    lines = [f"已先查询本地漏洞 RAG，并尝试调用 CVE 接口补充 {year_text} 年的最新记录。当前候选 CVE 如下："]
+    for record in records[:8]:
+        refs = record.get("references") or []
+        ref_text = f"（参考：{refs[0]}）" if refs else ""
+        lines.append(
+            f"- {record.get('id')} | {record.get('severity', 'UNKNOWN')} | "
+            f"{record.get('title') or record.get('summary') or '暂无标题'}{ref_text}"
+        )
+    lines.append("请结合资产暴露面、受影响版本、是否已有利用代码和官方补丁状态继续排序处置。")
+    return "\n".join(lines)
+
+
+def merge_records(primary: list[dict[str, Any]], secondary: list[dict[str, Any]], limit: int) -> list[dict[str, Any]]:
+    merged: dict[str, dict[str, Any]] = {}
+    for record in [*primary, *secondary]:
+        key = str(record.get("id", "")).upper()
+        if key and key not in merged:
+            merged[key] = record
+    return list(merged.values())[:limit]
 
 
 def format_record_context(record: dict[str, Any]) -> str:
@@ -334,6 +436,12 @@ def format_record_context(record: dict[str, Any]) -> str:
 def fallback_answer(state: AssistantState) -> str:
     question = state.get("question", "")
     lowered = question.lower()
+    if state.get("intent") == "vulnerability_year_lookup":
+        years = "、".join(str(year) for year in state.get("year_filter", [])) or "指定年份"
+        return (
+            f"当前模型或漏洞数据源未返回可用结果。系统已将问题识别为 {years} 年漏洞查询，"
+            "并会优先尝试本地漏洞 RAG 与 CVE 实时接口；请检查 CVE 采集器配置、NVD API 网络连通性、API Key 与本地知识库记录。"
+        )
     if any(token in lowered for token in ["供应链", "supply chain", "dependency", "sbom", "sca"]):
         return (
             "当前模型不可用，先给出本地安全专家建议：供应链治理应从依赖资产清单、SBOM、锁定版本、来源可信校验、"

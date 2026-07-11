@@ -466,7 +466,7 @@ class LongTermMemoryService:
     ) -> float:
         text = f"{question}\n{answer}".lower()
         score = 0.18 + min(max(confidence, 0.0), 1.0) * 0.22
-        if mode in {"vulnerability_lookup", "llm_rag", "security_knowledge"}:
+        if mode in {"vulnerability_lookup", "vulnerability_year_lookup", "llm_rag", "security_knowledge"}:
             score += 0.14
         if any(topic in {"CVE", "GHSA", "供应链", "代码审计", "威胁建模"} for topic in topics):
             score += 0.18
