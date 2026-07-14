@@ -41,6 +41,12 @@ class CollectorService:
         if collector_id not in state["collectors"]:
             raise KeyError(collector_id)
         config = state["collectors"][collector_id]
+        credential_error = _credential_error(collector_id, config)
+        if credential_error:
+            result = {"status": "warning", "message": credential_error, "checked_at": now_iso()}
+            config["last_test"] = result
+            store.write(state)
+            return result
         try:
             if collector_id == "cve":
                 result = self._test_cve(config)
@@ -61,6 +67,9 @@ class CollectorService:
         config = state["collectors"][collector_id]
         if not config.get("enabled", True):
             return {"status": "warning", "message": f"{config['name']} is disabled.", "inserted": 0}
+        credential_error = _credential_error(collector_id, config)
+        if credential_error:
+            return {"status": "warning", "message": credential_error, "inserted": 0, "fetched": 0, "records": []}
 
         if collector_id == "cve":
             records = self._collect_cve(config)
@@ -95,6 +104,9 @@ class CollectorService:
             raise KeyError("cve")
         if not config.get("enabled", True):
             return {"status": "warning", "message": "CVE collector is disabled.", "inserted": 0, "fetched": 0, "records": []}
+        credential_error = _credential_error("cve", config)
+        if credential_error:
+            return {"status": "warning", "message": credential_error, "inserted": 0, "fetched": 0, "records": []}
 
         collected: list[dict[str, Any]] = []
         errors: list[str] = []
@@ -278,13 +290,17 @@ class CollectorService:
             if allowed and severity.lower() not in allowed:
                 continue
             references = [item.get("html_url")] if item.get("html_url") else []
+            affected_versions, fixed_versions = _github_version_facts(item)
             records.append(
                 {
                     "id": ghsa_id,
                     "title": item.get("summary") or ghsa_id,
                     "severity": severity,
+                    "cvss_score": _github_cvss_score(item),
                     "source": "GitHub Advisory",
                     "summary": item.get("description") or item.get("summary") or "",
+                    "affected_versions": affected_versions,
+                    "fixed_versions": fixed_versions,
                     "references": references,
                     "collection": config.get("collection_name", "github_advisory"),
                     "updated_at": item.get("updated_at") or now_iso(),
@@ -301,6 +317,14 @@ def _description(cve: dict[str, Any]) -> str:
     return str(descriptions[0].get("value", "")) if descriptions else ""
 
 
+def _credential_error(collector_id: str, config: dict[str, Any]) -> str:
+    if collector_id == "cve" and not str(config.get("api_key") or "").strip():
+        return "请先填写并保存 CVE API Key，保存后才能测试或采集漏洞情报。"
+    if collector_id == "github_advisory" and not str(config.get("token") or "").strip():
+        return "请先填写并保存 GitHub Token，保存后才能测试或采集漏洞情报。"
+    return ""
+
+
 def _nvd_record(cve: dict[str, Any], config: dict[str, Any], year: int | None) -> dict[str, Any] | None:
     cve_id = str(cve.get("id", "")).upper()
     if not cve_id or (year and not cve_id.startswith(f"CVE-{year}-")):
@@ -312,8 +336,11 @@ def _nvd_record(cve: dict[str, Any], config: dict[str, Any], year: int | None) -
         "id": cve_id,
         "title": summary[:160] or cve_id,
         "severity": _nvd_severity(cve),
+        "cvss_score": _nvd_cvss_score(cve),
         "source": "NVD",
         "summary": summary,
+        "affected_versions": _nvd_affected_versions(cve),
+        "fixed_versions": [],
         "references": _nvd_references(cve),
         "collection": config.get("collection_name", "cve"),
         "published_at": cve.get("published") or "",
@@ -338,6 +365,81 @@ def _nvd_severity(cve: dict[str, Any]) -> str:
             cvss = values[0].get("cvssData", {})
             return str(cvss.get("baseSeverity") or values[0].get("baseSeverity") or "UNKNOWN")
     return "UNKNOWN"
+
+
+def _nvd_cvss_score(cve: dict[str, Any]) -> float | None:
+    metrics = cve.get("metrics", {})
+    for key in ("cvssMetricV40", "cvssMetricV31", "cvssMetricV30", "cvssMetricV2"):
+        values = metrics.get(key) or []
+        if not values:
+            continue
+        raw = (values[0].get("cvssData") or {}).get("baseScore")
+        try:
+            return float(raw)
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+def _nvd_affected_versions(cve: dict[str, Any]) -> list[str]:
+    """Extract only concrete version facts; wildcard CPE versions are never exposed."""
+
+    values: list[str] = []
+    for configuration in cve.get("configurations") or []:
+        for node in configuration.get("nodes") or []:
+            for match in node.get("cpeMatch") or []:
+                if not match.get("vulnerable", True):
+                    continue
+                criteria = str(match.get("criteria") or "")
+                parts = criteria.split(":")
+                product = " ".join(part.replace("_", " ") for part in parts[3:5] if part and part not in {"*", "-"})
+                exact = parts[5] if len(parts) > 5 and parts[5] not in {"", "*", "-"} else ""
+                bounds: list[str] = []
+                if match.get("versionStartIncluding"):
+                    bounds.append(f">= {match['versionStartIncluding']}")
+                if match.get("versionStartExcluding"):
+                    bounds.append(f"> {match['versionStartExcluding']}")
+                if match.get("versionEndIncluding"):
+                    bounds.append(f"<= {match['versionEndIncluding']}")
+                if match.get("versionEndExcluding"):
+                    bounds.append(f"< {match['versionEndExcluding']}")
+                version_text = exact or ", ".join(bounds)
+                if not version_text:
+                    continue
+                label = f"{product} {version_text}".strip()
+                if label and label not in values:
+                    values.append(label)
+    return values[:12]
+
+
+def _github_version_facts(item: dict[str, Any]) -> tuple[list[str], list[str]]:
+    affected: list[str] = []
+    fixed: list[str] = []
+    for vulnerability in item.get("vulnerabilities") or []:
+        package = vulnerability.get("package") or {}
+        package_name = str(package.get("name") or "").strip()
+        ecosystem = str(package.get("ecosystem") or "").strip()
+        prefix = " / ".join(value for value in (ecosystem, package_name) if value)
+        version_range = str(vulnerability.get("vulnerable_version_range") or "").strip()
+        if version_range:
+            label = f"{prefix}: {version_range}" if prefix else version_range
+            if label not in affected:
+                affected.append(label)
+        first_patched = vulnerability.get("first_patched_version") or {}
+        identifier = str(first_patched.get("identifier") or "").strip()
+        if identifier:
+            label = f"{prefix}: {identifier}" if prefix else identifier
+            if label not in fixed:
+                fixed.append(label)
+    return affected[:12], fixed[:12]
+
+
+def _github_cvss_score(item: dict[str, Any]) -> float | None:
+    raw = (item.get("cvss") or {}).get("score")
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        return None
 
 
 def _tokens(text: str) -> list[str]:

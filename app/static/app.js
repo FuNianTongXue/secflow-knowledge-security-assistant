@@ -141,8 +141,13 @@ function renderRuntime(runtime) {
 
 function renderAnswer(result) {
   $("#answer").classList.remove("empty");
+  const card = result.vulnerability_card || null;
+  if (card) {
+    $("#answer").innerHTML = renderVulnerabilityCard(card);
+    renderTrace(result.trace || []);
+    return;
+  }
   const fields = result.fields || {};
-  const sources = result.sources || [];
   $("#answer").innerHTML = `
     <b>${escapeHtml(modeLabel(result.mode || "security_knowledge"))}</b>
     <p>${escapeHtml(result.summary || "")}</p>
@@ -150,18 +155,64 @@ function renderAnswer(result) {
       ${Object.entries(fields)
         .map(([key, value]) => `<span><b>${escapeHtml(key)}</b>${escapeHtml(value)}</span>`)
         .join("")}
-      <span><b>置信度</b>${escapeHtml(result.confidence ?? "-")}</span>
     </div>
-    ${
-      sources.length
-        ? `<div class="sources">${sources
-            .map((source) => `<span>${escapeHtml(source.id || source.title || "")} · ${escapeHtml(source.source || source.collection || "")}</span>`)
-            .join("")}</div>`
-        : ""
-    }
-    <small>${escapeHtml(result.generated_at || "")}</small>
   `;
   renderTrace(result.trace || []);
+}
+
+function severityMeta(value) {
+  const normalized = String(value || "未知").trim().toUpperCase();
+  const map = {
+    CRITICAL: { label: "严重", tone: "critical" },
+    SEVERE: { label: "严重", tone: "critical" },
+    严重: { label: "严重", tone: "critical" },
+    HIGH: { label: "高危", tone: "high" },
+    高危: { label: "高危", tone: "high" },
+    MEDIUM: { label: "中危", tone: "medium" },
+    MODERATE: { label: "中危", tone: "medium" },
+    中危: { label: "中危", tone: "medium" },
+    LOW: { label: "低危", tone: "low" },
+    低危: { label: "低危", tone: "low" },
+  };
+  return map[normalized] || { label: "未知", tone: "unknown" };
+}
+
+function renderVulnerabilityCard(card) {
+  const severity = severityMeta(card["严重等级"]);
+  const textFields = [
+    "漏洞编号",
+    "漏洞名称",
+    "漏洞描述",
+    "CVSS评分",
+    "涉及版本",
+    "修复版本",
+    "修复方案",
+    "缓释措施",
+  ];
+  return `
+    <section class="vulnerability-card severity-${severity.tone}">
+      <header class="vulnerability-card__head">
+        <div>
+          <span>安全知识分析</span>
+          <h3>${escapeHtml(card["漏洞编号"] || "漏洞详情")}</h3>
+        </div>
+        <span class="severity-badge severity-badge--${severity.tone}">${escapeHtml(severity.label)}</span>
+      </header>
+      <div class="vulnerability-card__grid">
+        ${textFields
+          .map(
+            (key) => `
+              <div class="vulnerability-field vulnerability-field--${key === "漏洞描述" || key === "修复方案" || key === "缓释措施" ? "wide" : "compact"}">
+                <span>${escapeHtml(key)}</span>
+                <b>${escapeHtml(card[key] ?? "未明确")}</b>
+              </div>
+            `,
+          )
+          .join("")}
+      </div>
+      ${card["代码片段"] ? `<div class="vulnerability-code"><span>代码片段</span><pre><code>${escapeHtml(card["代码片段"])}</code></pre></div>` : ""}
+    </section>
+  `;
 }
 
 function renderTrace(trace) {
@@ -184,15 +235,16 @@ function renderRecords(records = [], stats = {}) {
   $("#recordStats").textContent = `${stats.total || records.length || 0} 条记录`;
   $("#records").innerHTML = records.length
     ? records
-        .map(
-          (record) => `
+        .map((record) => {
+          const severity = severityMeta(record.severity);
+          return `
             <div class="record-item">
-              <b>${escapeHtml(record.id)} · ${escapeHtml(record.severity)}</b>
+              <b>${escapeHtml(record.id)} <span class="severity-badge severity-badge--${severity.tone}">${escapeHtml(severity.label)}</span></b>
               <span>${escapeHtml(record.title)}</span>
               <small>${escapeHtml(record.collection)} · ${escapeHtml(record.source)} · ${escapeHtml(record.updated_at)}</small>
             </div>
-          `,
-        )
+          `;
+        })
         .join("")
     : `<div class="empty">暂无记录。</div>`;
 }
@@ -244,6 +296,7 @@ function nodeLabel(node) {
     retrieve_local_knowledge: "漏洞知识库检索",
     fetch_live_vulnerability: "实时补充漏洞记录",
     call_llm: "调用安全专家模型",
+    translate_vulnerability_card: "中文整理漏洞卡片",
     compose_answer: "生成回答",
     persist_memory: "保存长期记忆",
   }[node] || node;

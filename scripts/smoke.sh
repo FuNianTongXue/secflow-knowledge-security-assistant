@@ -22,7 +22,11 @@ from datetime import datetime, timezone
 assert app.title == "SecFlow Knowledge Security Assistant"
 result = knowledge_graph.invoke("Explain CVE-2021-44228", 5)
 assert result["mode"] == "vulnerability_lookup"
-assert result["records"]
+assert result["vulnerability_card"]["漏洞编号"] == "CVE-2021-44228"
+assert result["vulnerability_card"]["严重等级"] in {"严重", "高危", "中危", "低危", "未知"}
+assert "sources" not in result
+assert "records" not in result
+assert any(item["node"] == "translate_vulnerability_card" for item in result["trace"])
 
 assert _nvd_references({"references": [{"url": "https://nvd.example/CVE-2025-0001"}]}) == [
     "https://nvd.example/CVE-2025-0001"
@@ -52,10 +56,11 @@ try:
     year_result = knowledge_graph.invoke("2021 年最新 CVE 漏洞有哪些？", 5)
     assert year_result["mode"] == "vulnerability_year_lookup"
     assert year_result["fields"]["年份过滤"] == "2021"
-    assert year_result["records"][0]["id"] == "CVE-2021-9999"
+    assert "sources" not in year_result
     assert any(item["node"] == "fetch_live_vulnerability" for item in year_result["trace"])
 finally:
     collector_service.collect_cve_by_years = original_collect
 
 print("smoke-ok")
 PY
+"$PYTHON_BIN" -m unittest discover -s tests -p 'test_*.py'

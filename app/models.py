@@ -41,8 +41,11 @@ class VulnerabilityRecord(BaseModel):
     id: str
     title: str
     severity: str = "Unknown"
+    cvss_score: float | None = None
     source: str = "local"
     summary: str = ""
+    affected_versions: list[str] = Field(default_factory=list)
+    fixed_versions: list[str] = Field(default_factory=list)
     references: list[str] = Field(default_factory=list)
     collection: str = "cve"
     updated_at: str = ""
