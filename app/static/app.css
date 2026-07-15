@@ -355,6 +355,154 @@ button.ghost,
   overflow: auto;
 }
 
+.vulnerability-card {
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  border-radius: 18px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(59, 130, 246, 0.12), transparent 36%),
+    rgba(2, 6, 23, 0.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.vulnerability-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.vulnerability-card__head span:first-child {
+  color: #93c5fd;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.vulnerability-card__head h3 {
+  margin: 5px 0 0;
+  color: #f8fafc;
+  font-size: 19px;
+}
+
+.severity-badge {
+  position: relative;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-width: 58px;
+  height: 28px;
+  margin: 0 !important;
+  padding: 0 11px 0 24px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.76);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.severity-badge::before {
+  position: absolute;
+  left: 10px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 10px currentColor;
+  content: "";
+}
+
+.severity-badge--critical {
+  color: #f87171 !important;
+}
+
+.severity-badge--high {
+  color: #facc15 !important;
+}
+
+.severity-badge--medium {
+  color: #4ade80 !important;
+}
+
+.severity-badge--low {
+  color: #60a5fa !important;
+}
+
+.severity-badge--unknown {
+  color: #94a3b8 !important;
+}
+
+.vulnerability-card__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 18px;
+}
+
+.vulnerability-field {
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 13px;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.58);
+}
+
+.vulnerability-field--wide {
+  grid-column: 1 / -1;
+}
+
+.vulnerability-field > span,
+.vulnerability-code > span {
+  display: block;
+  margin-bottom: 6px;
+  color: #93c5fd;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.vulnerability-field b {
+  display: block;
+  color: #e5edf7;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.vulnerability-code {
+  margin: 0 18px 18px;
+}
+
+.vulnerability-code pre {
+  margin: 0;
+  overflow: auto;
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 12px;
+  padding: 13px;
+  background: #020617;
+  color: #bfdbfe;
+}
+
+.record-item b {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.record-item .severity-badge {
+  height: 22px;
+  min-width: 50px;
+  padding-left: 21px;
+  font-size: 11px;
+}
+
 @media (max-width: 900px) {
   .hero,
   .panel-head,
@@ -366,6 +514,14 @@ button.ghost,
   .grid,
   .collector-grid {
     grid-template-columns: 1fr;
+  }
+
+  .vulnerability-card__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .vulnerability-field--wide {
+    grid-column: auto;
   }
 
   .collector-card label {

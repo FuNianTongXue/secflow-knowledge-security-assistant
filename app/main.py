@@ -10,6 +10,7 @@ from app.collectors import collector_service
 from app.graph import knowledge_graph, runtime_status
 from app.memory import memory_service
 from app.models import ApiResponse, AskRequest, CollectorConfigUpdate, MemoryClearRequest
+from app.privacy import public_answer_payload
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -17,7 +18,7 @@ STATIC_DIR = BASE_DIR / "static"
 
 app = FastAPI(
     title="SecFlow Knowledge Security Assistant",
-    version="1.0.0",
+    version="1.1.0",
     description="A source-available LangGraph knowledge security assistant by ShenSiQi.",
 )
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
@@ -84,11 +85,13 @@ def vulnerabilities():
 @app.post("/api/ask", response_model=ApiResponse)
 def ask(payload: AskRequest):
     return ok(
-        knowledge_graph.invoke(
-            payload.question,
-            payload.top_k,
-            user_id=payload.user_id,
-            session_id=payload.session_id,
+        public_answer_payload(
+            knowledge_graph.invoke(
+                payload.question,
+                payload.top_k,
+                user_id=payload.user_id,
+                session_id=payload.session_id,
+            )
         ),
         "Assistant response generated.",
     )
