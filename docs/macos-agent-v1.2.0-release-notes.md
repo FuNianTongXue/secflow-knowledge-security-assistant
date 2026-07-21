@@ -18,14 +18,14 @@
 
 | 文件 | 平台 | 大小 | SHA-256 |
 | --- | --- | ---: | --- |
-| `SecFlow-Trial-3Days-macOS-arm64.zip` | Apple Silicon | 122 MB | `9c8f47e935e0ceaf83892ff17fa9f2d06a665f6c509215605e320baa7a514402` |
-| `SecFlow-Trial-3Days-macOS-x86_64.zip` | Intel Mac | 124 MB | `782b7db298e7a68010d3089f5c4a3e53fe371dfaedecf2142f7ddbf879d24a9b` |
+| `SecFlow-Trial-3Days-macOS-arm64.zip` | Apple Silicon | 122 MB | `bdc32aa87d1c1308c5b45689a1d169a1903b585367dbc4131801b3f3aacc1f28` |
+| `SecFlow-Trial-3Days-macOS-x86_64.zip` | Intel Mac | 124 MB | `6f50ece93287684d556dc501a29ad73552327a4d63949b61fd1572e315e773e1` |
 
 两个客户端最低支持 macOS 14。发布包使用 ad-hoc 签名，未使用 Apple Developer ID 签名或公证；在其他 Mac 首次启动时，可能需要在 Finder 中右键选择“打开”。
 
 ## 发布验证
 
-- Python：arm64 与 x86_64 环境各执行 `181` 个测试，全部通过。
+- Python：arm64 与 x86_64 环境各执行 `185` 个测试，全部通过。
 - Swift：arm64 与 x86_64 各执行 `23` 个测试，`22` 个通过，`1` 个未配置实时后端的集成测试按预期跳过。
 - 静态分析：Semgrep 1.170.0、七套离线规则、七种 Tree-sitter 语法模块和多语言 taint 烟测通过。
 - 架构：arm64 应用内 `243` 个 Mach-O 文件全部为 `arm64`；Intel 应用内 `128` 个 Mach-O 文件全部为 `x86_64`。
