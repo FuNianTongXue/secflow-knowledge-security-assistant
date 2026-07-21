@@ -1,0 +1,142 @@
+[
+  {
+    "slug": "apache/zookeeper",
+    "url": "https://github.com/apache/zookeeper.git",
+    "ref": "65016cb1b29f630fa37ff7a3f8cf4a6ab755d26b",
+    "stars": 12778,
+    "default_branch": "master"
+  },
+  {
+    "slug": "apache/logging-flume",
+    "url": "https://github.com/apache/logging-flume.git",
+    "ref": "b7a0fb5e83fda26893644c037ce414042e93930f",
+    "stars": 2565,
+    "default_branch": "trunk"
+  },
+  {
+    "slug": "apache/dubbo-spring-boot-project",
+    "url": "https://github.com/apache/dubbo-spring-boot-project.git",
+    "ref": "feb1783a182370e4bfacd903f4bd90f94ff1a550",
+    "stars": 5387,
+    "default_branch": "master"
+  },
+  {
+    "slug": "apache/dolphinscheduler",
+    "url": "https://github.com/apache/dolphinscheduler.git",
+    "ref": "c1cad902a986872fd022da6ba3c4628626241cd0",
+    "stars": 14375,
+    "default_branch": "dev"
+  },
+  {
+    "slug": "apache/fesod",
+    "url": "https://github.com/apache/fesod.git",
+    "ref": "4b426ba37b9e7b00d093883acbd5669881ab6555",
+    "stars": 6103,
+    "default_branch": "main"
+  },
+  {
+    "slug": "apache/curator",
+    "url": "https://github.com/apache/curator.git",
+    "ref": "90e1b7b59085293b34f711cf2e85c46b35eea1c9",
+    "stars": 3171,
+    "default_branch": "master"
+  },
+  {
+    "slug": "apache/incubator-seata",
+    "url": "https://github.com/apache/incubator-seata.git",
+    "ref": "e6d0860a4345b10cb59c65c78215ec51d67f59d1",
+    "stars": 25978,
+    "default_branch": "2.x"
+  },
+  {
+    "slug": "apache/activemq",
+    "url": "https://github.com/apache/activemq.git",
+    "ref": "467ef369722796eff7ed0196a40d1c9ee63c6cea",
+    "stars": 2442,
+    "default_branch": "main"
+  },
+  {
+    "slug": "apache/dubbo",
+    "url": "https://github.com/apache/dubbo.git",
+    "ref": "d0bf5c36d092da8067b15a1d1d00884a8c399e8e",
+    "stars": 41531,
+    "default_branch": "3.3"
+  },
+  {
+    "slug": "apache/logging-log4j2",
+    "url": "https://github.com/apache/logging-log4j2.git",
+    "ref": "df1d9a5198c55339cc4eebe78030f4fbdf4d5070",
+    "stars": 3610,
+    "default_branch": "2.x"
+  },
+  {
+    "slug": "apache/ratis",
+    "url": "https://github.com/apache/ratis.git",
+    "ref": "f4c3781468e756220836e88d953fd5598177afdf",
+    "stars": 1463,
+    "default_branch": "master"
+  },
+  {
+    "slug": "apache/pdfbox",
+    "url": "https://github.com/apache/pdfbox.git",
+    "ref": "a2ca944312187dd809c4b203001d4b782fd5b0b0",
+    "stars": 3083,
+    "default_branch": "trunk"
+  },
+  {
+    "slug": "apache/pulsar",
+    "url": "https://github.com/apache/pulsar.git",
+    "ref": "8af7868e7d11490e8463a5435a9311cb5b08ab5f",
+    "stars": 15298,
+    "default_branch": "master"
+  },
+  {
+    "slug": "apache/maven",
+    "url": "https://github.com/apache/maven.git",
+    "ref": "671031e6c1d6bd2302f8898513c4c14adac4171b",
+    "stars": 5246,
+    "default_branch": "master"
+  },
+  {
+    "slug": "apache/systemds",
+    "url": "https://github.com/apache/systemds.git",
+    "ref": "0dbd6f89453ed750d75f4e434e685fcef5784142",
+    "stars": 1093,
+    "default_branch": "main"
+  },
+  {
+    "slug": "apache/groovy",
+    "url": "https://github.com/apache/groovy.git",
+    "ref": "2d5770407c6450a65f6d57876e66e2afea64a483",
+    "stars": 5453,
+    "default_branch": "master"
+  },
+  {
+    "slug": "apache/dubbo-samples",
+    "url": "https://github.com/apache/dubbo-samples.git",
+    "ref": "fcda5252cdb72a84192aff4387bd336c26b47d5b",
+    "stars": 2378,
+    "default_branch": "master"
+  },
+  {
+    "slug": "apache/incubator-seata-samples",
+    "url": "https://github.com/apache/incubator-seata-samples.git",
+    "ref": "b5ee837195cabbed9a8b9e567b6df7b95f2687db",
+    "stars": 2352,
+    "default_branch": "master"
+  },
+  {
+    "slug": "apache/opennlp",
+    "url": "https://github.com/apache/opennlp.git",
+    "ref": "16b82540d4ba7599070739566a457d98ef8bbafd",
+    "stars": 1603,
+    "default_branch": "main"
+  },
+  {
+    "slug": "apache/polaris",
+    "url": "https://github.com/apache/polaris.git",
+    "ref": "47ec2fc61553acfdf7c905d6fcb6841cbdfbd98a",
+    "stars": 2014,
+    "default_branch": "main"
+  }
+]

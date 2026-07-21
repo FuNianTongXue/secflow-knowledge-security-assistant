@@ -1,0 +1,42 @@
+[
+  {
+    "slug": "Elias569/fintech-app",
+    "url": "https://github.com/Elias569/fintech-app.git",
+    "selection_reason": "random GitHub finance/payment Java search sample"
+  },
+  {
+    "slug": "meong1234/fintech",
+    "url": "https://github.com/meong1234/fintech.git",
+    "selection_reason": "random GitHub fintech Java search sample"
+  },
+  {
+    "slug": "hidemon/BankSystem",
+    "url": "https://github.com/hidemon/BankSystem.git",
+    "selection_reason": "random GitHub banking Java search sample"
+  },
+  {
+    "slug": "coopdevs/timeoverflow",
+    "url": "https://github.com/coopdevs/timeoverflow.git",
+    "selection_reason": "random GitHub banking/ledger Java search sample"
+  },
+  {
+    "slug": "temporal-sa/money-transfer-demo",
+    "url": "https://github.com/temporal-sa/money-transfer-demo.git",
+    "selection_reason": "random GitHub money-transfer Java search sample"
+  },
+  {
+    "slug": "kishan169/PaymentWalletApplicationAPI",
+    "url": "https://github.com/kishan169/PaymentWalletApplicationAPI.git",
+    "selection_reason": "random GitHub payment/wallet Java search sample"
+  },
+  {
+    "slug": "ACINQ/phoenix",
+    "url": "https://github.com/ACINQ/phoenix.git",
+    "selection_reason": "random GitHub wallet/payment Java search sample"
+  },
+  {
+    "slug": "julianolf/loan-management-system",
+    "url": "https://github.com/julianolf/loan-management-system.git",
+    "selection_reason": "random GitHub loan Java search sample"
+  }
+]

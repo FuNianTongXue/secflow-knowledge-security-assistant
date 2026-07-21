@@ -50,11 +50,135 @@ body {
   margin-bottom: 20px;
 }
 
+.hero-brand {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.brand-logo {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 74px;
+  height: 74px;
+  border-radius: 18px;
+  color: #fff;
+  background: linear-gradient(135deg, #0f193a 0%, #2cafd2 100%);
+  box-shadow: 0 14px 32px rgba(34, 211, 238, 0.20);
+}
+
+.brand-logo svg {
+  width: 44px;
+  height: 44px;
+}
+
 .runtime-status {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   margin: -6px 0 20px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.trial-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 54px;
+  margin: -6px 0 20px;
+  border: 1px solid rgba(251, 191, 36, 0.42);
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: rgba(120, 53, 15, 0.34);
+  color: #fef3c7;
+}
+
+.trial-banner > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.trial-banner span {
+  color: #fde68a;
+  font-size: 13px;
+}
+
+.trial-banner strong {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+  font-size: 16px;
+}
+
+.trial-banner--blocked {
+  border-color: rgba(251, 113, 133, 0.5);
+  background: rgba(127, 29, 29, 0.38);
+  color: #ffe4e6;
+}
+
+.trial-blocked {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(2, 6, 23, 0.88);
+  backdrop-filter: blur(10px);
+}
+
+.trial-blocked__dialog {
+  width: min(480px, 100%);
+  border: 1px solid rgba(251, 113, 133, 0.42);
+  border-radius: 8px;
+  padding: 28px;
+  background: #111827;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.52);
+}
+
+.trial-blocked__label {
+  color: #fda4af;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.trial-blocked__dialog h2 {
+  margin: 10px 0 8px;
+  font-size: 24px;
+}
+
+.trial-blocked__dialog dl {
+  display: grid;
+  gap: 1px;
+  margin: 22px 0 0;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 6px;
+  background: rgba(148, 163, 184, 0.18);
+}
+
+.trial-blocked__dialog dl div {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 12px;
+  padding: 11px 12px;
+  background: #111827;
+}
+
+.trial-blocked__dialog dt {
+  color: var(--muted);
+}
+
+.trial-blocked__dialog dd {
+  margin: 0;
+  color: var(--text);
+  text-align: right;
 }
 
 .eyebrow,

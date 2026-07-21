@@ -1,0 +1,288 @@
+rules:
+  - id: secflow.go.sql-injection
+    languages: [go]
+    severity: ERROR
+    message: HTTP 外部输入进入动态 SQL 查询，可能造成 SQL 注入。
+    metadata:
+      category: security
+      scenario: sql_injection
+      cwe: [CWE-89]
+      owasp: [A03:2021]
+      confidence: HIGH
+      remediation: 使用固定 SQL 模板和占位符参数，禁止拼接用户输入。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: $R.URL.Query().Get(...)
+          - pattern: $R.FormValue(...)
+          - pattern: $R.PostFormValue(...)
+          - pattern: $C.Param(...)
+          - pattern: $C.PostForm(...)
+          - pattern: os.Args[$INDEX]
+          - pattern: os.Getenv(...)
+          - pattern: flag.Arg(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $DB.Query($QUERY, ...)
+              - pattern: $DB.QueryContext($CTX, $QUERY, ...)
+              - pattern: $DB.QueryRow($QUERY, ...)
+              - pattern: $DB.Exec($QUERY, ...)
+              - pattern: $DB.ExecContext($CTX, $QUERY, ...)
+          - focus-metavariable: $QUERY
+    pattern-sanitizers:
+      - patterns:
+          - pattern: fmt.Sprintf($FORMAT, ...)
+          - metavariable-regex:
+              metavariable: $FORMAT
+              regex: '^"([^"%]|%%|%[-+ #0-9.*]*[bdoOxXUeEfFgG])+"$'
+
+  - id: secflow.go.command-injection
+    languages: [go]
+    severity: ERROR
+    message: HTTP 外部输入进入命令执行接口，可能造成命令注入。
+    metadata:
+      category: security
+      scenario: command_execution
+      cwe: [CWE-78]
+      owasp: [A03:2021]
+      confidence: MEDIUM
+      remediation: 固定可执行文件并对白名单参数逐项校验，禁止通过 shell 解释用户输入。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: $R.URL.Query().Get(...)
+          - pattern: $R.FormValue(...)
+          - pattern: $R.PostFormValue(...)
+          - pattern: $C.Param(...)
+          - pattern: $C.PostForm(...)
+          - pattern: os.Args[$INDEX]
+          - pattern: os.Getenv(...)
+          - pattern: flag.Arg(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: exec.Command($CMD, ...)
+              - pattern: exec.CommandContext($CTX, $CMD, ...)
+          - focus-metavariable: $CMD
+
+  - id: secflow.go.shell-command-injection
+    languages: [go]
+    severity: ERROR
+    message: HTTP 外部输入作为 shell 命令内容执行，可能造成命令注入。
+    metadata:
+      category: security
+      scenario: command_execution
+      cwe: [CWE-78]
+      owasp: [A03:2021]
+      confidence: HIGH
+      remediation: 禁止把外部输入交给 shell -c；改用固定可执行文件和逐项校验的参数数组。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: $R.URL.Query().Get(...)
+          - pattern: $R.FormValue(...)
+          - pattern: $R.PostFormValue(...)
+          - pattern: $C.Param(...)
+          - pattern: $C.PostForm(...)
+          - pattern: os.Args[$INDEX]
+          - pattern: os.Getenv(...)
+          - pattern: flag.Arg(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: exec.Command("sh", "-c", $CMD, ...)
+              - pattern: exec.Command("bash", "-c", $CMD, ...)
+              - pattern: exec.Command("/bin/sh", "-c", $CMD, ...)
+              - pattern: exec.Command("/bin/bash", "-c", $CMD, ...)
+              - pattern: exec.CommandContext($CTX, "sh", "-c", $CMD, ...)
+              - pattern: exec.CommandContext($CTX, "bash", "-c", $CMD, ...)
+          - focus-metavariable: $CMD
+
+  - id: secflow.go.path-traversal
+    languages: [go]
+    severity: ERROR
+    message: HTTP 外部输入直接控制文件路径，可能造成路径穿越。
+    metadata:
+      category: security
+      scenario: path_traversal
+      cwe: [CWE-22]
+      owasp: [A01:2021]
+      confidence: HIGH
+      remediation: 使用 filepath.Clean 后验证路径仍位于固定根目录，并拒绝绝对路径与父目录跳转。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: $R.URL.Query().Get(...)
+          - pattern: $R.FormValue(...)
+          - pattern: $R.PostFormValue(...)
+          - pattern: $C.Param(...)
+          - pattern: $C.PostForm(...)
+          - pattern: os.Args[$INDEX]
+          - pattern: os.Getenv(...)
+          - pattern: flag.Arg(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: os.Open($PATH)
+              - pattern: os.OpenFile($PATH, ...)
+              - pattern: os.ReadFile($PATH)
+              - pattern: os.WriteFile($PATH, ...)
+              - pattern: http.ServeFile($W, $R, $PATH)
+          - focus-metavariable: $PATH
+    pattern-sanitizers:
+      - pattern: filepath.Base(...)
+
+  - id: secflow.go.ssrf
+    languages: [go]
+    severity: ERROR
+    message: HTTP 外部输入控制服务端请求目标，可能造成 SSRF。
+    metadata:
+      category: security
+      scenario: ssrf
+      cwe: [CWE-918]
+      owasp: [A10:2021]
+      confidence: HIGH
+      remediation: 对协议、主机、端口及解析后的地址实施允许列表，并阻断内网和链路本地地址。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: $R.URL.Query().Get(...)
+          - pattern: $R.FormValue(...)
+          - pattern: $R.PostFormValue(...)
+          - pattern: $C.Param(...)
+          - pattern: $C.PostForm(...)
+          - pattern: os.Args[$INDEX]
+          - pattern: os.Getenv(...)
+          - pattern: flag.Arg(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: http.Get($URL)
+              - pattern: http.Post($URL, ...)
+              - pattern: http.NewRequest($METHOD, $URL, ...)
+              - pattern: http.NewRequestWithContext($CTX, $METHOD, $URL, ...)
+          - focus-metavariable: $URL
+    pattern-sanitizers:
+      - pattern: url.QueryEscape(...)
+
+  - id: secflow.go.unsafe-template-html
+    languages: [go]
+    severity: WARNING
+    message: 外部输入被强制标记为可信 HTML，可能绕过模板自动转义。
+    metadata:
+      category: security
+      scenario: cross_site_scripting
+      cwe: [CWE-79]
+      owasp: [A03:2021]
+      confidence: HIGH
+      remediation: 保持 html/template 自动转义，不要把外部输入转换为 template.HTML。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: $R.URL.Query().Get(...)
+          - pattern: $R.FormValue(...)
+          - pattern: $R.PostFormValue(...)
+          - pattern: $C.Param(...)
+          - pattern: $C.PostForm(...)
+    pattern-sinks:
+      - patterns:
+          - pattern: template.HTML($DATA)
+          - focus-metavariable: $DATA
+
+  - id: secflow.go.weak-cryptography
+    languages: [go]
+    severity: WARNING
+    message: 安全敏感代码使用 MD5 或 SHA-1，可能不满足完整性或密码学安全要求。
+    metadata:
+      category: security
+      scenario: weak_cryptography
+      cwe: [CWE-327, CWE-328]
+      owasp: [A02:2021]
+      confidence: MEDIUM
+      remediation: 密码存储使用 Argon2id、scrypt 或 bcrypt；完整性校验使用 SHA-256 及以上算法。
+    patterns:
+      - pattern-either:
+          - pattern: md5.New()
+          - pattern: md5.Sum(...)
+          - pattern: sha1.New()
+          - pattern: sha1.Sum(...)
+      - pattern-either:
+          - pattern-inside: |
+              func $FUNC(...) { ... }
+          - pattern-inside: |
+              func $FUNC(...) $RET { ... }
+          - pattern-inside: |
+              func ($RECV $TYPE) $FUNC(...) { ... }
+          - pattern-inside: |
+              func ($RECV $TYPE) $FUNC(...) $RET { ... }
+      - metavariable-regex:
+          metavariable: $FUNC
+          regex: (?i).*(password|passwd|credential|secret|token|auth|sign|signature|certificate|privatekey|private_key|apikey|api_key|sessionkey|session_key).*
+
+  - id: secflow.go.hardcoded-credential
+    languages: [go]
+    severity: ERROR
+    message: 凭据字段包含长十六进制值或带填充的 Base64 密钥材料，可能造成凭据泄露。
+    metadata:
+      category: security
+      scenario: hardcoded_credential
+      cwe: [CWE-798]
+      owasp: [A07:2021]
+      confidence: HIGH
+      remediation: 从密钥管理服务或受保护的环境变量读取凭据，并立即轮换已提交的值。
+    pattern-regex: '(?i)(password|passwd|pwd|pw|secret|credential|cred|token|api_?key|access_?key|private_?key|bearer|auth|somekey)"?\s*(?:=|:=|:)\s*"(?:[a-f0-9]{32,}|[A-Za-z0-9+/]{32,}={1,2})"|"(?:[a-f0-9]{32,}|[A-Za-z0-9+/]{32,}={1,2})"\s*(?:==|!=)\s*(?:password|passwd|pwd|pw|secret|credential|cred|token|api_?key|access_?key|private_?key|bearer|auth)'
+
+  - id: secflow.go.hardcoded-provider-token
+    languages: [go]
+    severity: ERROR
+    message: 源码中出现具有明确格式的云服务或代码托管访问令牌。
+    metadata:
+      category: security
+      scenario: hardcoded_credential
+      cwe: [CWE-798]
+      owasp: [A07:2021]
+      confidence: HIGH
+      remediation: 立即撤销并轮换令牌，改从密钥管理服务注入。
+    pattern-regex: '(?i)(gh[pousr]_[A-Za-z0-9]{30,}|AKIA[A-Z0-9]{16}|AIza[A-Za-z0-9_-]{30,}|Bearer:\s*[A-Za-z0-9_./+=-]{16,})'
+
+  - id: secflow.go.insecure-tls-verification
+    languages: [go]
+    severity: WARNING
+    message: TLS 配置关闭证书验证，可能遭受中间人攻击。
+    metadata:
+      category: security
+      scenario: insecure_transport
+      cwe: [CWE-295]
+      owasp: [A02:2021]
+      confidence: MEDIUM
+      remediation: 保持证书验证开启，并通过 RootCAs 或服务身份配置可信证书。
+    pattern-either:
+      - pattern: 'tls.Config{..., InsecureSkipVerify: true, ...}'
+      - pattern: '&tls.Config{..., InsecureSkipVerify: true, ...}'
+
+  - id: secflow.go.insecure-ssh-host-key
+    languages: [go]
+    severity: ERROR
+    message: SSH 客户端忽略主机密钥验证，可能连接到伪造服务器。
+    metadata:
+      category: security
+      scenario: insecure_transport
+      cwe: [CWE-322]
+      owasp: [A07:2021]
+      confidence: HIGH
+      remediation: 使用 known_hosts 或固定主机公钥验证回调。
+    pattern: ssh.InsecureIgnoreHostKey()
+
+  - id: secflow.go.exposed-pprof
+    languages: [go]
+    severity: WARNING
+    message: 空白导入 net/http/pprof 会在默认 HTTP mux 上暴露调试端点。
+    metadata:
+      category: security
+      scenario: security_misconfiguration
+      cwe: [CWE-200]
+      owasp: [A05:2021]
+      confidence: MEDIUM
+      remediation: 仅在受认证的独立管理监听地址启用 pprof，生产构建默认关闭。
+    pattern-regex: '(?m)^\s*(?:import\s+)?_\s+"net/http/pprof"'

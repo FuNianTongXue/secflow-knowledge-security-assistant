@@ -18,6 +18,10 @@ except Exception:  # pragma: no cover - Postgres is optional.
     dict_row = None
 
 from app.storage import DATA_DIR, now_iso
+from app.secure_storage import decrypt_json_from_text, encrypt_json_to_text
+
+
+MEMORY_PURPOSE = "secflow-memory"
 
 
 def _env_int(name: str, default: int) -> int:
@@ -42,6 +46,7 @@ class LongTermMemoryService:
 
     def __init__(self, state_path: Path | None = None) -> None:
         self.database_url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_DSN") or ""
+        self.local_only = os.getenv("SECFLOW_MEMORY_LOCAL_ONLY", "true").strip().lower() not in {"0", "false", "no"}
         self.max_history = _env_int("SECFLOW_MEMORY_MAX_HISTORY", 300)
         self.recent_limit = _env_int("SECFLOW_MEMORY_RECENT_LIMIT", 6)
         self.retrieval_limit = _env_int("SECFLOW_MEMORY_RETRIEVAL_LIMIT", 5)
@@ -53,7 +58,7 @@ class LongTermMemoryService:
 
     @property
     def backend(self) -> str:
-        return "postgres" if self._use_postgres() else "json"
+        return "postgres" if self._use_postgres() else "local-json"
 
     def status(self, user_id: str = "default") -> dict[str, Any]:
         profile = self._get_profile(user_id)
@@ -82,9 +87,10 @@ class LongTermMemoryService:
     def build_context(self, user_id: str, question: str) -> dict[str, Any]:
         profile = self._get_profile(user_id)
         history = self.get_history(user_id, limit=self.max_history)
-        recent = history[-self.recent_limit :]
-        relevant = self._retrieve_relevant(history, question, self.retrieval_limit)
-        prompt_context = self._format_prompt_context(profile, recent, relevant)
+        has_query_tokens = bool(self._tokens(question))
+        recent = history[-self.recent_limit :] if has_query_tokens else []
+        relevant = self._retrieve_relevant(history, question, self.retrieval_limit) if has_query_tokens else []
+        prompt_context = self._format_prompt_context(profile if has_query_tokens else {}, recent, relevant)
         return {
             "enabled": True,
             "backend": self.backend,
@@ -116,9 +122,10 @@ class LongTermMemoryService:
                 return deepcopy(stored)
             except Exception as exc:  # noqa: BLE001
                 self._mark_postgres_failed(exc)
-        stored = self._json_add_exchange(entry)
-        self._json_update_profile(user_id, stored)
-        return deepcopy(stored)
+        with self._lock:
+            stored = self._json_add_exchange(entry)
+            self._json_update_profile(user_id, stored)
+            return deepcopy(stored)
 
     def clear_history(self, user_id: str = "default") -> dict[str, Any]:
         if self._use_postgres():
@@ -136,6 +143,8 @@ class LongTermMemoryService:
         return {"status": "success", "message": f"已清除用户 {user_id} 的本地记忆。"}
 
     def _use_postgres(self) -> bool:
+        if self.local_only:
+            return False
         if not self.database_url or psycopg is None:
             return False
         if self._postgres_ready is False:
@@ -306,11 +315,16 @@ class LongTermMemoryService:
         with self._lock:
             if self.state_path.exists():
                 try:
-                    state = json.loads(self.state_path.read_text(encoding="utf-8"))
+                    raw = self.state_path.read_text(encoding="utf-8")
+                    state = decrypt_json_from_text(raw, MEMORY_PURPOSE)
+                    if not isinstance(state, dict):
+                        raise ValueError("memory payload is not an object")
                     state.setdefault("users", {})
                     state.setdefault("profiles", {})
+                    if not raw.lstrip().startswith('{"__secflow_encrypted__"'):
+                        self._write_json_state(state)
                     return state
-                except (json.JSONDecodeError, OSError):
+                except (json.JSONDecodeError, OSError, ValueError):
                     pass
             state: dict[str, Any] = {"users": {}, "profiles": {}}
             self._write_json_state(state)
@@ -320,7 +334,7 @@ class LongTermMemoryService:
         with self._lock:
             self.state_path.parent.mkdir(parents=True, exist_ok=True)
             tmp = self.state_path.with_name(f"{self.state_path.name}.tmp")
-            tmp.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+            tmp.write_text(encrypt_json_to_text(state, MEMORY_PURPOSE), encoding="utf-8")
             os.replace(tmp, self.state_path)
 
     def _get_profile(self, user_id: str) -> dict[str, Any]:
@@ -338,7 +352,7 @@ class LongTermMemoryService:
         answer = str(answer_data.get("summary", "") or answer_data.get("answer", "") or "")
         topics = self._extract_topics(f"{question}\n{answer}")
         fields = deepcopy(answer_data.get("fields", {}) or {})
-        sources = deepcopy(answer_data.get("sources", []) or [])
+        sources: list[dict[str, Any]] = []
         confidence = float(answer_data.get("confidence", 0) or 0)
         mode = str(answer_data.get("mode", "") or "")
         importance = self._importance_score(question, answer, mode, confidence, topics, sources)

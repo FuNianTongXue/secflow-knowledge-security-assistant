@@ -1,0 +1,813 @@
+{
+  "generated_at": "2026-07-21T01:33:28.503986+00:00",
+  "methodology": {
+    "query": "language:Go stars:>=1000 archived:false fork:false size:<500000",
+    "candidate_pool_size": 300,
+    "sample_size": 100,
+    "seed": 20260721,
+    "selection": "uniform random sample without replacement from GitHub star-sorted candidate pool",
+    "commit_policy": "HEAD resolved and pinned at selection time"
+  },
+  "projects": [
+    {
+      "slug": "Wox-launcher/Wox",
+      "url": "https://github.com/Wox-launcher/Wox.git",
+      "ref": "359539924a7674c17e7673039afa434069848d62",
+      "stars": 27156,
+      "size_kb": 390163,
+      "default_branch": "master"
+    },
+    {
+      "slug": "ory/hydra",
+      "url": "https://github.com/ory/hydra.git",
+      "ref": "24778dd24bdb4963b05e429b58d79bb40c72fb3a",
+      "stars": 17415,
+      "size_kb": 125680,
+      "default_branch": "master"
+    },
+    {
+      "slug": "snail007/goproxy",
+      "url": "https://github.com/snail007/goproxy.git",
+      "ref": "e6d6a821db80e7f47ee6e981a144984e1d4ddb3d",
+      "stars": 17016,
+      "size_kb": 3909,
+      "default_branch": "master"
+    },
+    {
+      "slug": "geektutu/7days-golang",
+      "url": "https://github.com/geektutu/7days-golang.git",
+      "ref": "cf3644382101dc13e7fd92e8f5c66cabc51bcd3b",
+      "stars": 16951,
+      "size_kb": 1031,
+      "default_branch": "master"
+    },
+    {
+      "slug": "chaitin/SafeLine",
+      "url": "https://github.com/chaitin/SafeLine.git",
+      "ref": "6d871e638bf8750c3422413afae0fd7b2d311a55",
+      "stars": 21910,
+      "size_kb": 80059,
+      "default_branch": "main"
+    },
+    {
+      "slug": "PuerkitoBio/goquery",
+      "url": "https://github.com/PuerkitoBio/goquery.git",
+      "ref": "50e9856dda907f3e559a3bdcdf6121244bc75a98",
+      "stars": 14974,
+      "size_kb": 625,
+      "default_branch": "master"
+    },
+    {
+      "slug": "fatedier/frp",
+      "url": "https://github.com/fatedier/frp.git",
+      "ref": "fe79598ee44b94bfb1589227a65af81490be37f3",
+      "stars": 108197,
+      "size_kb": 32266,
+      "default_branch": "dev"
+    },
+    {
+      "slug": "sirupsen/logrus",
+      "url": "https://github.com/sirupsen/logrus.git",
+      "ref": "a23d315dfebb6de47d18c92c8ae1430736a60b0c",
+      "stars": 25751,
+      "size_kb": 1292,
+      "default_branch": "master"
+    },
+    {
+      "slug": "greyireland/algorithm-pattern",
+      "url": "https://github.com/greyireland/algorithm-pattern.git",
+      "ref": "6c5cb6d4414098a71e2d44d4ab8d6c807f17e995",
+      "stars": 15458,
+      "size_kb": 4242,
+      "default_branch": "master"
+    },
+    {
+      "slug": "seaweedfs/seaweedfs",
+      "url": "https://github.com/seaweedfs/seaweedfs.git",
+      "ref": "ce4b7f43bdd19e44b037e738ed285f85e4bc96f1",
+      "stars": 33608,
+      "size_kb": 209623,
+      "default_branch": "master"
+    },
+    {
+      "slug": "gitleaks/gitleaks",
+      "url": "https://github.com/gitleaks/gitleaks.git",
+      "ref": "c33331503ad17dcf3c8f6ae6e3ce792fda14a415",
+      "stars": 28215,
+      "size_kb": 6437,
+      "default_branch": "master"
+    },
+    {
+      "slug": "air-verse/air",
+      "url": "https://github.com/air-verse/air.git",
+      "ref": "6fbfb5d72274e6876a04f4deba00b243ed79a057",
+      "stars": 23798,
+      "size_kb": 33913,
+      "default_branch": "master"
+    },
+    {
+      "slug": "jeessy2/ddns-go",
+      "url": "https://github.com/jeessy2/ddns-go.git",
+      "ref": "bcab5727a6f40e6817cf86fc3cc422345d6eae32",
+      "stars": 17091,
+      "size_kb": 25232,
+      "default_branch": "master"
+    },
+    {
+      "slug": "harness/harness",
+      "url": "https://github.com/harness/harness.git",
+      "ref": "b71cd3b953afa8a2bd5d2291dc03cb86436db9f2",
+      "stars": 37415,
+      "size_kb": 59815,
+      "default_branch": "main"
+    },
+    {
+      "slug": "opencontainers/runc",
+      "url": "https://github.com/opencontainers/runc.git",
+      "ref": "8d2f7df5cdcbd8d26b15457a9201f1c0ad426459",
+      "stars": 13352,
+      "size_kb": 26865,
+      "default_branch": "main"
+    },
+    {
+      "slug": "rqlite/rqlite",
+      "url": "https://github.com/rqlite/rqlite.git",
+      "ref": "52415ca836cc8d40b5de27a3d619efddcc518298",
+      "stars": 17639,
+      "size_kb": 12032,
+      "default_branch": "master"
+    },
+    {
+      "slug": "lima-vm/lima",
+      "url": "https://github.com/lima-vm/lima.git",
+      "ref": "406e25d7d67df5ed3bdf7f7eaeb51f3bc50f7e38",
+      "stars": 21539,
+      "size_kb": 17892,
+      "default_branch": "master"
+    },
+    {
+      "slug": "git-lfs/git-lfs",
+      "url": "https://github.com/git-lfs/git-lfs.git",
+      "ref": "d72db1e533a1d6ee5543e02e9f8ccac97e0fcd34",
+      "stars": 14380,
+      "size_kb": 20916,
+      "default_branch": "main"
+    },
+    {
+      "slug": "gohugoio/hugo",
+      "url": "https://github.com/gohugoio/hugo.git",
+      "ref": "89b8c322008f5285b81d4b357887292e3b61f708",
+      "stars": 89035,
+      "size_kb": 142875,
+      "default_branch": "master"
+    },
+    {
+      "slug": "cert-manager/cert-manager",
+      "url": "https://github.com/cert-manager/cert-manager.git",
+      "ref": "bbcb324fdac923a2a5471aa9b76dc252b3d7c4c4",
+      "stars": 13956,
+      "size_kb": 101060,
+      "default_branch": "master"
+    },
+    {
+      "slug": "gogf/gf",
+      "url": "https://github.com/gogf/gf.git",
+      "ref": "7474b459ee423c86e4beca40a9b4a7ca2e494dca",
+      "stars": 13225,
+      "size_kb": 30617,
+      "default_branch": "master"
+    },
+    {
+      "slug": "getsops/sops",
+      "url": "https://github.com/getsops/sops.git",
+      "ref": "7149e91241bc278d4e598549d610126e93160bdf",
+      "stars": 22550,
+      "size_kb": 146807,
+      "default_branch": "main"
+    },
+    {
+      "slug": "authelia/authelia",
+      "url": "https://github.com/authelia/authelia.git",
+      "ref": "9b6237d378028f4fbb5705bfc17b69d728e24f95",
+      "stars": 28337,
+      "size_kb": 79872,
+      "default_branch": "master"
+    },
+    {
+      "slug": "gofiber/fiber",
+      "url": "https://github.com/gofiber/fiber.git",
+      "ref": "3d9ec877b269d91b8d5e9928071111a4632abe4f",
+      "stars": 39996,
+      "size_kb": 71374,
+      "default_branch": "main"
+    },
+    {
+      "slug": "opentofu/opentofu",
+      "url": "https://github.com/opentofu/opentofu.git",
+      "ref": "2a92692b43b9b103d3e750a6cc72c073de3e5ade",
+      "stars": 29508,
+      "size_kb": 288772,
+      "default_branch": "main"
+    },
+    {
+      "slug": "heroiclabs/nakama",
+      "url": "https://github.com/heroiclabs/nakama.git",
+      "ref": "73ad9c15d64e75eba241a80211ba1adb94019010",
+      "stars": 12920,
+      "size_kb": 146488,
+      "default_branch": "master"
+    },
+    {
+      "slug": "dagger/dagger",
+      "url": "https://github.com/dagger/dagger.git",
+      "ref": "419e9c4a42c5805a1404a2764f85d6cbab5c4c88",
+      "stars": 16081,
+      "size_kb": 235467,
+      "default_branch": "main"
+    },
+    {
+      "slug": "syncthing/syncthing",
+      "url": "https://github.com/syncthing/syncthing.git",
+      "ref": "d73c00799bcb3d7cccf69e6ad6c16b9719da66cb",
+      "stars": 86704,
+      "size_kb": 125391,
+      "default_branch": "main"
+    },
+    {
+      "slug": "charmbracelet/crush",
+      "url": "https://github.com/charmbracelet/crush.git",
+      "ref": "63f812e0563169eb6ff4faa7cec7fde6259be8c9",
+      "stars": 26675,
+      "size_kb": 28528,
+      "default_branch": "main"
+    },
+    {
+      "slug": "probelabs/goreplay",
+      "url": "https://github.com/probelabs/goreplay.git",
+      "ref": "251e45abd242886bb64ff2b2dc98789556b56330",
+      "stars": 19297,
+      "size_kb": 18139,
+      "default_branch": "master"
+    },
+    {
+      "slug": "golang/go",
+      "url": "https://github.com/golang/go.git",
+      "ref": "1c3a1bac8b14c866d70b330e0229e5555670f577",
+      "stars": 135309,
+      "size_kb": 445970,
+      "default_branch": "master"
+    },
+    {
+      "slug": "m1k1o/neko",
+      "url": "https://github.com/m1k1o/neko.git",
+      "ref": "d74052bb844c43a0cc3c2386d083f7505dc483a2",
+      "stars": 21633,
+      "size_kb": 91416,
+      "default_branch": "master"
+    },
+    {
+      "slug": "coredns/coredns",
+      "url": "https://github.com/coredns/coredns.git",
+      "ref": "0410236577754fd30355bf723f8740d782fe5bda",
+      "stars": 14191,
+      "size_kb": 104428,
+      "default_branch": "master"
+    },
+    {
+      "slug": "AlistGo/alist",
+      "url": "https://github.com/AlistGo/alist.git",
+      "ref": "aead76e49a8629edcd3032cc43489787b4b5b319",
+      "stars": 49893,
+      "size_kb": 6596,
+      "default_branch": "main"
+    },
+    {
+      "slug": "go-chi/chi",
+      "url": "https://github.com/go-chi/chi.git",
+      "ref": "8b258c7bb28f97a5f2a856ff7ef962578fec9215",
+      "stars": 22561,
+      "size_kb": 3855,
+      "default_branch": "master"
+    },
+    {
+      "slug": "ginuerzh/gost",
+      "url": "https://github.com/ginuerzh/gost.git",
+      "ref": "1d516e35e654c7864a0ce907b021a4799715c832",
+      "stars": 18118,
+      "size_kb": 22801,
+      "default_branch": "master"
+    },
+    {
+      "slug": "bcicen/ctop",
+      "url": "https://github.com/bcicen/ctop.git",
+      "ref": "59f00dd6aaebf48f3bc501e174f75f815c2619f0",
+      "stars": 17792,
+      "size_kb": 3616,
+      "default_branch": "master"
+    },
+    {
+      "slug": "hashicorp/packer",
+      "url": "https://github.com/hashicorp/packer.git",
+      "ref": "65f0fb3ff27433815f9e44854c780461c31b7903",
+      "stars": 15735,
+      "size_kb": 119917,
+      "default_branch": "main"
+    },
+    {
+      "slug": "owasp-amass/amass",
+      "url": "https://github.com/owasp-amass/amass.git",
+      "ref": "79299dce87b0085db0f2f4ef3e9c52cccb49f514",
+      "stars": 14853,
+      "size_kb": 393386,
+      "default_branch": "main"
+    },
+    {
+      "slug": "ethereum/go-ethereum",
+      "url": "https://github.com/ethereum/go-ethereum.git",
+      "ref": "85fe2723552f7acd630c754952334ada881da168",
+      "stars": 51201,
+      "size_kb": 238404,
+      "default_branch": "master"
+    },
+    {
+      "slug": "projectdiscovery/nuclei",
+      "url": "https://github.com/projectdiscovery/nuclei.git",
+      "ref": "4e422a93084f9d3f06b232edb714140c6fc2bfea",
+      "stars": 29875,
+      "size_kb": 44689,
+      "default_branch": "dev"
+    },
+    {
+      "slug": "yeasy/docker_practice",
+      "url": "https://github.com/yeasy/docker_practice.git",
+      "ref": "51698c89c54978bb3a017e99e04026c4e6559355",
+      "stars": 26162,
+      "size_kb": 22881,
+      "default_branch": "master"
+    },
+    {
+      "slug": "restic/restic",
+      "url": "https://github.com/restic/restic.git",
+      "ref": "d4088aa09ba78d3c93d81505bfab9cacf13f5168",
+      "stars": 35093,
+      "size_kb": 71386,
+      "default_branch": "master"
+    },
+    {
+      "slug": "usememos/memos",
+      "url": "https://github.com/usememos/memos.git",
+      "ref": "41dd3d174059d78921326e6f9a9a0da53a777336",
+      "stars": 61681,
+      "size_kb": 40215,
+      "default_branch": "main"
+    },
+    {
+      "slug": "sqlc-dev/sqlc",
+      "url": "https://github.com/sqlc-dev/sqlc.git",
+      "ref": "e209d865845b3be71da65583bdc1c063c4ae5873",
+      "stars": 18043,
+      "size_kb": 23376,
+      "default_branch": "main"
+    },
+    {
+      "slug": "golang/groupcache",
+      "url": "https://github.com/golang/groupcache.git",
+      "ref": "2c02b8208cf8c02a3e358cb1d9b60950647543fc",
+      "stars": 13344,
+      "size_kb": 84,
+      "default_branch": "master"
+    },
+    {
+      "slug": "urfave/cli",
+      "url": "https://github.com/urfave/cli.git",
+      "ref": "4937c163f8e8bd88fdb06c4eab67cde61436c205",
+      "stars": 24176,
+      "size_kb": 12430,
+      "default_branch": "main"
+    },
+    {
+      "slug": "ffuf/ffuf",
+      "url": "https://github.com/ffuf/ffuf.git",
+      "ref": "8162f48742ff140cafd0d8eb4f071714befccef5",
+      "stars": 16400,
+      "size_kb": 981,
+      "default_branch": "master"
+    },
+    {
+      "slug": "ahmetb/kubectx",
+      "url": "https://github.com/ahmetb/kubectx.git",
+      "ref": "c747d27b4b7d854cf0258631617fe7e5bf408154",
+      "stars": 19900,
+      "size_kb": 1067,
+      "default_branch": "master"
+    },
+    {
+      "slug": "caddyserver/caddy",
+      "url": "https://github.com/caddyserver/caddy.git",
+      "ref": "9738f49b952a337cdaf42175a0e92b01974c0e3c",
+      "stars": 74210,
+      "size_kb": 21714,
+      "default_branch": "master"
+    },
+    {
+      "slug": "matryer/xbar",
+      "url": "https://github.com/matryer/xbar.git",
+      "ref": "d624239058997c80118eaebe2e7f8331b3c765e0",
+      "stars": 18056,
+      "size_kb": 64884,
+      "default_branch": "main"
+    },
+    {
+      "slug": "GoogleCloudPlatform/microservices-demo",
+      "url": "https://github.com/GoogleCloudPlatform/microservices-demo.git",
+      "ref": "9a4616e77f0f9cbcbecaf27d711c38890dda1404",
+      "stars": 20583,
+      "size_kb": 36969,
+      "default_branch": "main"
+    },
+    {
+      "slug": "XTLS/Xray-core",
+      "url": "https://github.com/XTLS/Xray-core.git",
+      "ref": "6e3322d219140a025285ded1114fe17a5edb74d8",
+      "stars": 40545,
+      "size_kb": 30945,
+      "default_branch": "main"
+    },
+    {
+      "slug": "danielmiessler/Fabric",
+      "url": "https://github.com/danielmiessler/Fabric.git",
+      "ref": "34e02fdca29b1e82afbd48219e1701b83532ca32",
+      "stars": 43157,
+      "size_kb": 153162,
+      "default_branch": "main"
+    },
+    {
+      "slug": "robfig/cron",
+      "url": "https://github.com/robfig/cron.git",
+      "ref": "bc59245fe10efaed9d51b56900192527ed733435",
+      "stars": 14158,
+      "size_kb": 180,
+      "default_branch": "master"
+    },
+    {
+      "slug": "gin-gonic/gin",
+      "url": "https://github.com/gin-gonic/gin.git",
+      "ref": "34dac209ffb6ef85cc78c5d217bbb7ad001d68fd",
+      "stars": 88941,
+      "size_kb": 10588,
+      "default_branch": "master"
+    },
+    {
+      "slug": "hashicorp/vault",
+      "url": "https://github.com/hashicorp/vault.git",
+      "ref": "c8eee29597ce4a6fd820b425322584bef3708915",
+      "stars": 35960,
+      "size_kb": 355629,
+      "default_branch": "main"
+    },
+    {
+      "slug": "fogleman/primitive",
+      "url": "https://github.com/fogleman/primitive.git",
+      "ref": "0373c216458be1c4b40655b796a3aefedf8b7d23",
+      "stars": 13174,
+      "size_kb": 2348,
+      "default_branch": "master"
+    },
+    {
+      "slug": "OJ/gobuster",
+      "url": "https://github.com/OJ/gobuster.git",
+      "ref": "c77583fbb8824058d74d38240896eff610683c8e",
+      "stars": 13913,
+      "size_kb": 1336,
+      "default_branch": "master"
+    },
+    {
+      "slug": "ehang-io/nps",
+      "url": "https://github.com/ehang-io/nps.git",
+      "ref": "ab648d6f0c618c690a7a79948a7ebd686e1cdafc",
+      "stars": 34137,
+      "size_kb": 9168,
+      "default_branch": "master"
+    },
+    {
+      "slug": "OpenNHP/opennhp",
+      "url": "https://github.com/OpenNHP/opennhp.git",
+      "ref": "9e9da69fb50711835fb5fcbc57ed3985fd86ab7f",
+      "stars": 13823,
+      "size_kb": 97011,
+      "default_branch": "main"
+    },
+    {
+      "slug": "samber/lo",
+      "url": "https://github.com/samber/lo.git",
+      "ref": "bb6e45518419e49b59a20a55de900df7698ad644",
+      "stars": 21384,
+      "size_kb": 6322,
+      "default_branch": "master"
+    },
+    {
+      "slug": "DNSCrypt/dnscrypt-proxy",
+      "url": "https://github.com/DNSCrypt/dnscrypt-proxy.git",
+      "ref": "5d01beb6bea87d5eae1cec326cdf8b2e8ad124bb",
+      "stars": 13495,
+      "size_kb": 32321,
+      "default_branch": "master"
+    },
+    {
+      "slug": "swaggo/swag",
+      "url": "https://github.com/swaggo/swag.git",
+      "ref": "fa1d2c801b35b1ee6d7baa0187580eb898c6e79c",
+      "stars": 12910,
+      "size_kb": 5607,
+      "default_branch": "master"
+    },
+    {
+      "slug": "bettercap/bettercap",
+      "url": "https://github.com/bettercap/bettercap.git",
+      "ref": "2359c0be7900c8bf16ed867b49f78d819f14aa62",
+      "stars": 19535,
+      "size_kb": 26544,
+      "default_branch": "master"
+    },
+    {
+      "slug": "etcd-io/etcd",
+      "url": "https://github.com/etcd-io/etcd.git",
+      "ref": "88fe81cd8ad17872e64835316d25a67a314dae74",
+      "stars": 52012,
+      "size_kb": 97987,
+      "default_branch": "main"
+    },
+    {
+      "slug": "github/github-mcp-server",
+      "url": "https://github.com/github/github-mcp-server.git",
+      "ref": "1338dbed4a044ee26422d4212bac3a8037fdb7ff",
+      "stars": 31587,
+      "size_kb": 54459,
+      "default_branch": "main"
+    },
+    {
+      "slug": "sipeed/picoclaw",
+      "url": "https://github.com/sipeed/picoclaw.git",
+      "ref": "85dcfccad66dd0dca0ec9765976b665d8ebf7191",
+      "stars": 29691,
+      "size_kb": 41479,
+      "default_branch": "main"
+    },
+    {
+      "slug": "go-gorm/gorm",
+      "url": "https://github.com/go-gorm/gorm.git",
+      "ref": "1d6ce99528060be18a42be09aca8d39efcb47f28",
+      "stars": 39881,
+      "size_kb": 4827,
+      "default_branch": "master"
+    },
+    {
+      "slug": "slackhq/nebula",
+      "url": "https://github.com/slackhq/nebula.git",
+      "ref": "3615a79b8b249031595b333d4bf1501c611d6e73",
+      "stars": 17543,
+      "size_kb": 4720,
+      "default_branch": "master"
+    },
+    {
+      "slug": "infiniflow/ragflow",
+      "url": "https://github.com/infiniflow/ragflow.git",
+      "ref": "3670b047f00cc7356d80d6e816e36428ffb58f3e",
+      "stars": 85491,
+      "size_kb": 141219,
+      "default_branch": "main"
+    },
+    {
+      "slug": "tomnomnom/gron",
+      "url": "https://github.com/tomnomnom/gron.git",
+      "ref": "88a6234ea2d0c487090988182ad9a7cdf6def924",
+      "stars": 14486,
+      "size_kb": 1501,
+      "default_branch": "master"
+    },
+    {
+      "slug": "gastownhall/gastown",
+      "url": "https://github.com/gastownhall/gastown.git",
+      "ref": "67a8d72a7aa415cad5b9832bdbba31b6ec026417",
+      "stars": 17120,
+      "size_kb": 87098,
+      "default_branch": "main"
+    },
+    {
+      "slug": "halfrost/Halfrost-Field",
+      "url": "https://github.com/halfrost/Halfrost-Field.git",
+      "ref": "7ccdcf79b7bdbfa01dfc464b225d7ff423ac206c",
+      "stars": 13207,
+      "size_kb": 108041,
+      "default_branch": "master"
+    },
+    {
+      "slug": "nats-io/nats-server",
+      "url": "https://github.com/nats-io/nats-server.git",
+      "ref": "146b0be65b3591e925cce61ce9d2cae32cdeb227",
+      "stars": 20288,
+      "size_kb": 61426,
+      "default_branch": "main"
+    },
+    {
+      "slug": "dutchcoders/transfer.sh",
+      "url": "https://github.com/dutchcoders/transfer.sh.git",
+      "ref": "c37bfd95797fd6da8a6da53fc13d191994b3f687",
+      "stars": 15869,
+      "size_kb": 41151,
+      "default_branch": "main"
+    },
+    {
+      "slug": "apache/casbin",
+      "url": "https://github.com/apache/casbin.git",
+      "ref": "95656679eac1caad13179bd209bbc87a2e8e6002",
+      "stars": 20274,
+      "size_kb": 6627,
+      "default_branch": "master"
+    },
+    {
+      "slug": "openfaas/faas",
+      "url": "https://github.com/openfaas/faas.git",
+      "ref": "8d803bf9e2655aec6a60fd0e25b392839f96af95",
+      "stars": 26213,
+      "size_kb": 33523,
+      "default_branch": "master"
+    },
+    {
+      "slug": "TheAlgorithms/Go",
+      "url": "https://github.com/TheAlgorithms/Go.git",
+      "ref": "5ba447ec5ff3d1213de65b92e726ee74c5d5cc19",
+      "stars": 18141,
+      "size_kb": 2619,
+      "default_branch": "master"
+    },
+    {
+      "slug": "photoprism/photoprism",
+      "url": "https://github.com/photoprism/photoprism.git",
+      "ref": "3d25deae220377eecaa0ebd23018d9da7bca396c",
+      "stars": 39987,
+      "size_kb": 367821,
+      "default_branch": "develop"
+    },
+    {
+      "slug": "jesseduffield/lazygit",
+      "url": "https://github.com/jesseduffield/lazygit.git",
+      "ref": "4b788d5eb0d28e0996796ed75b632905fd385cfe",
+      "stars": 80559,
+      "size_kb": 156274,
+      "default_branch": "master"
+    },
+    {
+      "slug": "go-playground/validator",
+      "url": "https://github.com/go-playground/validator.git",
+      "ref": "fd8bd3c9d513cd1d29e495974fa07dba7a2b5936",
+      "stars": 20082,
+      "size_kb": 2523,
+      "default_branch": "master"
+    },
+    {
+      "slug": "joewalnes/websocketd",
+      "url": "https://github.com/joewalnes/websocketd.git",
+      "ref": "d1a43cab937a6a534ca18a44b971a9eb0ea55515",
+      "stars": 17466,
+      "size_kb": 1364,
+      "default_branch": "master"
+    },
+    {
+      "slug": "google/gvisor",
+      "url": "https://github.com/google/gvisor.git",
+      "ref": "04b0e29530b14678af1b450468506baf503ab454",
+      "stars": 18816,
+      "size_kb": 361808,
+      "default_branch": "master"
+    },
+    {
+      "slug": "abiosoft/colima",
+      "url": "https://github.com/abiosoft/colima.git",
+      "ref": "896f65456e9d34a5fc562f02f037ef20bdfe88d6",
+      "stars": 30020,
+      "size_kb": 3426,
+      "default_branch": "main"
+    },
+    {
+      "slug": "navidrome/navidrome",
+      "url": "https://github.com/navidrome/navidrome.git",
+      "ref": "c35b14dd74d35660a4781d3bd72f7f9c8efa8bd9",
+      "stars": 22420,
+      "size_kb": 56562,
+      "default_branch": "master"
+    },
+    {
+      "slug": "gizak/termui",
+      "url": "https://github.com/gizak/termui.git",
+      "ref": "3ee54a07c7d109c74f4b1282b256800f55e8e421",
+      "stars": 13579,
+      "size_kb": 6145,
+      "default_branch": "master"
+    },
+    {
+      "slug": "go-task/task",
+      "url": "https://github.com/go-task/task.git",
+      "ref": "4e869d2c30c52702c8c428f1b61cd5eba401c98b",
+      "stars": 15865,
+      "size_kb": 20903,
+      "default_branch": "main"
+    },
+    {
+      "slug": "go-delve/delve",
+      "url": "https://github.com/go-delve/delve.git",
+      "ref": "d7b3f4d12a88f5953891298b45f60ab47f16fce1",
+      "stars": 24846,
+      "size_kb": 35554,
+      "default_branch": "master"
+    },
+    {
+      "slug": "wtfutil/wtf",
+      "url": "https://github.com/wtfutil/wtf.git",
+      "ref": "ee40814e64bd9c9deffc5b1eead4232819f24e8f",
+      "stars": 17013,
+      "size_kb": 50952,
+      "default_branch": "trunk"
+    },
+    {
+      "slug": "apernet/hysteria",
+      "url": "https://github.com/apernet/hysteria.git",
+      "ref": "ff1eec4b68dab3d1377b6b11bdd1be2180b0ff26",
+      "stars": 22143,
+      "size_kb": 10288,
+      "default_branch": "master"
+    },
+    {
+      "slug": "plandex-ai/plandex",
+      "url": "https://github.com/plandex-ai/plandex.git",
+      "ref": "e2d772072efadbe41d2946d97d79be55532dbab5",
+      "stars": 15537,
+      "size_kb": 56802,
+      "default_branch": "main"
+    },
+    {
+      "slug": "kubesphere/kubesphere",
+      "url": "https://github.com/kubesphere/kubesphere.git",
+      "ref": "04a29b5c601470fa6bc2f2e92358dcb802a0d414",
+      "stars": 17007,
+      "size_kb": 98191,
+      "default_branch": "master"
+    },
+    {
+      "slug": "gastownhall/beads",
+      "url": "https://github.com/gastownhall/beads.git",
+      "ref": "2a63eb3182f7f878893da36c99dd3b5d48f60206",
+      "stars": 25457,
+      "size_kb": 419320,
+      "default_branch": "main"
+    },
+    {
+      "slug": "cheat/cheat",
+      "url": "https://github.com/cheat/cheat.git",
+      "ref": "b8098dc1b9de846d76e68102e03aeb0f918bb0da",
+      "stars": 13398,
+      "size_kb": 10394,
+      "default_branch": "master"
+    },
+    {
+      "slug": "gopherjs/gopherjs",
+      "url": "https://github.com/gopherjs/gopherjs.git",
+      "ref": "45844b5c72d52f0c1f1328a02284ccb7c0532831",
+      "stars": 13169,
+      "size_kb": 7966,
+      "default_branch": "master"
+    },
+    {
+      "slug": "mudler/LocalAI",
+      "url": "https://github.com/mudler/LocalAI.git",
+      "ref": "d0401f9bb46b041cf717fa9d4de55546f92bc02d",
+      "stars": 47712,
+      "size_kb": 80516,
+      "default_branch": "master"
+    },
+    {
+      "slug": "traefik/traefik",
+      "url": "https://github.com/traefik/traefik.git",
+      "ref": "14bc52dd1f1d1c08cedd1da531a527fc04d79c19",
+      "stars": 64055,
+      "size_kb": 159410,
+      "default_branch": "master"
+    },
+    {
+      "slug": "projectdiscovery/katana",
+      "url": "https://github.com/projectdiscovery/katana.git",
+      "ref": "ba15ac09b8cc40341e5737ee6baf1e66c9d7e2eb",
+      "stars": 17192,
+      "size_kb": 2673,
+      "default_branch": "dev"
+    },
+    {
+      "slug": "GopeedLab/gopeed",
+      "url": "https://github.com/GopeedLab/gopeed.git",
+      "ref": "fdfc6902a7750a3628735e8bf37d739bfda9549c",
+      "stars": 25361,
+      "size_kb": 6412,
+      "default_branch": "main"
+    }
+  ]
+}

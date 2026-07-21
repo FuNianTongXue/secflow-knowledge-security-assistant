@@ -1,0 +1,879 @@
+rules:
+  - id: secflow.java.sql-injection
+    languages: [java]
+    severity: ERROR
+    message: 外部输入未经参数化处理进入 SQL 执行接口，可能造成 SQL 注入。
+    metadata:
+      category: security
+      scenario: sql_injection
+      cwe: [CWE-89]
+      confidence: HIGH
+      remediation: 使用 PreparedStatement 占位符并单独绑定参数，禁止拼接外部输入。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: $REQ.getParameter(...)
+          - pattern: $REQ.getParameterMap(...)
+          - pattern: $REQ.getHeader(...)
+          - pattern: $REQ.getHeaders(...)
+          - pattern: $REQ.getParameterValues(...)
+          - patterns:
+              - pattern: $COOKIE.getValue(...)
+              - metavariable-regex:
+                  metavariable: $COOKIE
+                  regex: '(?i).*cookie.*'
+          - pattern: $REQ.getCookies(...)
+          - pattern: $REQ.getQueryString(...)
+          - pattern: $REQ.getInputStream(...)
+          - patterns:
+              - pattern-inside: |
+                  java.util.Enumeration<$TYPE> $PARAM_NAMES = $REQ.getParameterNames(...);
+                  ...
+              - pattern: $PARAM_NAMES.nextElement(...)
+          - patterns:
+              - pattern: $HEADERS.nextElement(...)
+              - metavariable-regex:
+                  metavariable: $HEADERS
+                  regex: '(?i).*headers?.*'
+          - patterns:
+              - pattern-either:
+                  - pattern-inside: |
+                      $RET $METHOD(..., HttpServletRequest $REQ, ..., String $INPUT, ...) {
+                        ...
+                      }
+                  - pattern-inside: |
+                      $RET $METHOD(..., javax.servlet.http.HttpServletRequest $REQ, ..., String $INPUT, ...) {
+                        ...
+                      }
+              - pattern: (String $INPUT)
+              - focus-metavariable: $INPUT
+    pattern-sanitizers:
+      - pattern-either:
+          - pattern: Integer.parseInt(...)
+          - pattern: Long.parseLong(...)
+          - pattern: UUID.fromString(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: (Statement $STMT).execute($SQL)
+              - pattern: (Statement $STMT).executeQuery($SQL)
+              - pattern: (Statement $STMT).executeUpdate($SQL)
+              - patterns:
+                  - pattern-either:
+                      - pattern: $STMT.execute($SQL)
+                      - pattern: $STMT.executeQuery($SQL)
+                      - pattern: $STMT.executeUpdate($SQL)
+                  - metavariable-regex:
+                      metavariable: $STMT
+                      regex: '(?i).*(stmt|statement).*'
+              - pattern: (Connection $CONN).prepareStatement($SQL)
+              - pattern: $CONN.prepareStatement($SQL)
+              - pattern: $CONN.prepareCall($SQL)
+              - pattern: (EntityManager $EM).createQuery($SQL)
+              - pattern: (EntityManager $EM).createNativeQuery($SQL)
+              - patterns:
+                  - pattern-either:
+                      - pattern: $JDBC.query($SQL, ...)
+                      - pattern: $JDBC.queryForObject($SQL, ...)
+                      - pattern: $JDBC.queryForList($SQL, ...)
+                      - pattern: $JDBC.queryForMap($SQL, ...)
+                      - pattern: $JDBC.queryForRowSet($SQL, ...)
+                      - pattern: $JDBC.execute($SQL)
+                      - pattern: $JDBC.update($SQL, ...)
+                      - pattern: $JDBC.batchUpdate($SQL, ...)
+                  - metavariable-regex:
+                      metavariable: $JDBC
+                      regex: '(?i).*(jdbc|template).*'
+          - focus-metavariable: $SQL
+
+  - id: secflow.java.command-injection
+    languages: [java]
+    severity: ERROR
+    message: 外部输入传播到进程启动接口，可能造成命令注入。
+    metadata:
+      category: security
+      scenario: command_execution
+      cwe: [CWE-78]
+      confidence: HIGH
+      remediation: 固定可执行文件，使用参数数组和严格白名单，不通过 shell 解释外部输入。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: $REQ.getParameter(...)
+          - pattern: $REQ.getParameterMap(...)
+          - pattern: $REQ.getHeader(...)
+          - pattern: $REQ.getHeaders(...)
+          - pattern: $COOKIE.getValue(...)
+          - pattern: $REQ.getCookies(...)
+          - pattern: $REQ.getQueryString(...)
+          - pattern: $HEADERS.nextElement(...)
+          - pattern: System.getenv(...)
+          - pattern: $SCANNER.nextLine(...)
+          - patterns:
+              - pattern-inside: |
+                  $RET $METHOD(..., String $INPUT, ...) {
+                    ...
+                  }
+              - pattern: (String $INPUT)
+              - focus-metavariable: $INPUT
+    pattern-sanitizers:
+      - patterns:
+          - pattern: $VALUE.matches($REGEX)
+          - focus-metavariable: $VALUE
+    pattern-sinks:
+      - pattern-either:
+          - pattern: Runtime.getRuntime().exec($CMD)
+          - pattern: Runtime.getRuntime().exec($CMD, ...)
+          - pattern: (Runtime $RUNTIME).exec($CMD)
+          - pattern: (Runtime $RUNTIME).exec($CMD, ...)
+          - pattern: (ProcessBuilder $BUILDER).command($CMD)
+          - pattern: (ProcessBuilder $BUILDER).command($CMD, ...)
+          - pattern: new ProcessBuilder($CMD, ...)
+          - pattern: new ProcessBuilder($CMD)
+
+  - id: secflow.java.path-traversal
+    languages: [java]
+    severity: ERROR
+    message: 外部输入未经路径约束进入文件系统接口，可能造成路径穿越。
+    metadata:
+      category: security
+      scenario: path_traversal
+      cwe: [CWE-22]
+      confidence: HIGH
+      remediation: 只接受文件名，解析规范路径后确认其仍位于允许的根目录内。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: $REQ.getParameter(...)
+          - pattern: $REQ.getParameterMap(...)
+          - pattern: $REQ.getHeader(...)
+          - pattern: $REQ.getHeaders(...)
+          - pattern: $REQ.getParameterValues(...)
+          - patterns:
+              - pattern: $COOKIE.getValue(...)
+              - metavariable-regex:
+                  metavariable: $COOKIE
+                  regex: '(?i).*cookie.*'
+          - pattern: $REQ.getCookies(...)
+          - pattern: $REQ.getQueryString(...)
+          - patterns:
+              - pattern-inside: |
+                  java.util.Enumeration<$TYPE> $PARAM_NAMES = $REQ.getParameterNames(...);
+                  ...
+              - pattern: $PARAM_NAMES.nextElement(...)
+          - patterns:
+              - pattern: $HEADERS.nextElement(...)
+              - metavariable-regex:
+                  metavariable: $HEADERS
+                  regex: '(?i).*headers?.*'
+          - pattern: $PART.getSubmittedFileName(...)
+          - pattern: $FILE.getOriginalFilename(...)
+          - patterns:
+              - pattern-either:
+                  - pattern-inside: |
+                      $RET $METHOD(..., HttpServletRequest $REQ, ..., String $INPUT, ...) {
+                        ...
+                      }
+                  - pattern-inside: |
+                      $RET $METHOD(..., javax.servlet.http.HttpServletRequest $REQ, ..., String $INPUT, ...) {
+                        ...
+                      }
+              - pattern: (String $INPUT)
+              - focus-metavariable: $INPUT
+    pattern-sanitizers:
+      - pattern-either:
+          - pattern: FilenameUtils.getName(...)
+          - pattern: Paths.get(...).getFileName(...)
+    pattern-sinks:
+      - pattern-either:
+          - pattern: new File($PATH)
+          - pattern: new java.io.File($PATH)
+          - pattern: new File($ROOT, $PATH)
+          - pattern: new java.io.File($ROOT, $PATH)
+          - pattern: new FileInputStream($PATH)
+          - pattern: new FileInputStream($PATH, ...)
+          - pattern: new java.io.FileInputStream($PATH)
+          - pattern: new java.io.FileInputStream($PATH, ...)
+          - pattern: new FileOutputStream($PATH)
+          - pattern: new FileOutputStream($PATH, ...)
+          - pattern: new java.io.FileOutputStream($PATH)
+          - pattern: new java.io.FileOutputStream($PATH, ...)
+          - pattern: Files.readAllBytes($PATH)
+          - pattern: Files.write($PATH, ...)
+          - pattern: Paths.get($PATH, ...)
+
+  - id: secflow.java.reflected-xss
+    languages: [java]
+    severity: ERROR
+    message: 外部输入未经输出编码写入 HTTP 响应，可能造成跨站脚本攻击。
+    metadata:
+      category: security
+      scenario: cross_site_scripting
+      cwe: [CWE-79]
+      confidence: HIGH
+      remediation: 根据 HTML、属性、JavaScript 或 URL 上下文使用对应的输出编码函数。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: $REQ.getParameter(...)
+          - pattern: $REQ.getParameterMap(...)
+          - pattern: $REQ.getHeader(...)
+          - pattern: $REQ.getHeaders(...)
+          - pattern: $COOKIE.getValue(...)
+          - pattern: $REQ.getCookies(...)
+          - pattern: $REQ.getQueryString(...)
+          - pattern: $HEADERS.nextElement(...)
+    pattern-sanitizers:
+      - pattern-either:
+          - pattern: Encode.forHtml(...)
+          - pattern: HtmlUtils.htmlEscape(...)
+          - pattern: StringEscapeUtils.escapeHtml4(...)
+          - pattern: ESAPI.encoder().encodeForHTML(...)
+          - pattern: ESAPI.encoder().encodeForHTMLAttribute(...)
+          - pattern: org.owasp.esapi.ESAPI.encoder().encodeForHTML(...)
+          - pattern: org.owasp.esapi.ESAPI.encoder().encodeForHTMLAttribute(...)
+          - pattern: $ENCODER.encodeForHTML(...)
+          - pattern: $ENCODER.encodeForHTMLAttribute(...)
+    pattern-sinks:
+      - pattern-either:
+          - pattern: $RESP.getWriter().print($DATA)
+          - pattern: $RESP.getWriter().println($DATA)
+          - pattern: $RESP.getWriter().write($DATA)
+          - pattern: $RESP.getWriter().format($DATA, ...)
+          - pattern: $RESP.getWriter().printf($DATA, ...)
+          - pattern: (PrintWriter $WRITER).print($DATA)
+          - pattern: (PrintWriter $WRITER).println($DATA)
+          - pattern: (PrintWriter $WRITER).write($DATA)
+          - pattern: (PrintWriter $WRITER).format($DATA, ...)
+          - pattern: (PrintWriter $WRITER).printf($DATA, ...)
+
+  - id: secflow.java.ldap-injection
+    languages: [java]
+    severity: ERROR
+    message: 外部输入进入 LDAP 查询过滤器，可能改变目录查询语义。
+    metadata:
+      category: security
+      scenario: ldap_injection
+      cwe: [CWE-90]
+      confidence: HIGH
+      remediation: 使用参数化 LDAP 查询或对过滤器元字符执行 RFC 4515 转义。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: $REQ.getParameter(...)
+          - pattern: $REQ.getParameterMap(...)
+          - pattern: $REQ.getHeader(...)
+          - pattern: $REQ.getHeaders(...)
+          - pattern: $REQ.getParameterValues(...)
+          - patterns:
+              - pattern: $COOKIE.getValue(...)
+              - metavariable-regex:
+                  metavariable: $COOKIE
+                  regex: '(?i).*cookie.*'
+          - pattern: $REQ.getCookies(...)
+          - pattern: $REQ.getQueryString(...)
+          - patterns:
+              - pattern-inside: |
+                  java.util.Enumeration<$TYPE> $PARAM_NAMES = $REQ.getParameterNames(...);
+                  ...
+              - pattern: $PARAM_NAMES.nextElement(...)
+          - patterns:
+              - pattern: $HEADERS.nextElement(...)
+              - metavariable-regex:
+                  metavariable: $HEADERS
+                  regex: '(?i).*headers?.*'
+    pattern-sanitizers:
+      - pattern-either:
+          - pattern: LdapEncoder.filterEncode(...)
+          - pattern: Filter.encodeValue(...)
+    pattern-sinks:
+      - pattern-either:
+          - pattern: (DirContext $CTX).search($BASE, $FILTER, ...)
+          - pattern: $CTX.search($BASE, $FILTER, ...)
+          - pattern: (LdapTemplate $LDAP).search($BASE, $FILTER, ...)
+
+  - id: secflow.java.xpath-injection
+    languages: [java]
+    severity: ERROR
+    message: 外部输入进入 XPath 表达式，可能造成 XPath 注入。
+    metadata:
+      category: security
+      scenario: xpath_injection
+      cwe: [CWE-643]
+      confidence: HIGH
+      remediation: 固定 XPath 结构并通过 XPathVariableResolver 绑定变量。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: $REQ.getParameter(...)
+          - pattern: $REQ.getParameterMap(...)
+          - pattern: $REQ.getHeader(...)
+          - pattern: $REQ.getHeaders(...)
+          - pattern: $REQ.getParameterValues(...)
+          - pattern: $COOKIE.getValue(...)
+          - pattern: $REQ.getCookies(...)
+          - pattern: $REQ.getQueryString(...)
+          - patterns:
+              - pattern-inside: |
+                  java.util.Enumeration<$TYPE> $PARAM_NAMES = $REQ.getParameterNames(...);
+                  ...
+              - pattern: $PARAM_NAMES.nextElement(...)
+          - pattern: $HEADERS.nextElement(...)
+          - patterns:
+              - pattern-inside: |
+                  $RET $METHOD(..., String $INPUT, ...) {
+                    ...
+                  }
+              - pattern: (String $INPUT)
+              - focus-metavariable: $INPUT
+    pattern-sinks:
+      - pattern-either:
+          - pattern: (XPath $XPATH).compile($EXPR)
+          - pattern: (XPath $XPATH).evaluate($EXPR, ...)
+          - patterns:
+              - pattern: $XPATH.compile($EXPR)
+              - metavariable-regex:
+                  metavariable: $XPATH
+                  regex: '(?i).*(xpath|xp).*'
+          - patterns:
+              - pattern: $XPATH.evaluate($EXPR, ...)
+              - metavariable-regex:
+                  metavariable: $XPATH
+                  regex: '(?i).*(xpath|xp).*'
+
+  - id: secflow.java.ssrf
+    languages: [java]
+    severity: ERROR
+    message: 外部输入控制服务端请求目标，可能造成服务端请求伪造。
+    metadata:
+      category: security
+      scenario: ssrf
+      cwe: [CWE-918]
+      confidence: HIGH
+      remediation: 使用协议、主机和端口白名单，并阻断环回、链路本地和内网地址。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: $REQ.getParameter(...)
+          - pattern: $REQ.getHeader(...)
+          - pattern: $COOKIE.getValue(...)
+          - patterns:
+              - pattern-inside: |
+                  $RET $METHOD(..., String $INPUT, ...) {
+                    ...
+                  }
+              - pattern: (String $INPUT)
+              - focus-metavariable: $INPUT
+    pattern-sanitizers:
+      - patterns:
+          - pattern: $ALLOWED.contains($HOST)
+          - focus-metavariable: $HOST
+    pattern-sinks:
+      - pattern-either:
+          - pattern: new URL($TARGET).openConnection(...)
+          - pattern: new URL($TARGET).openStream(...)
+          - pattern: URI.create($TARGET).toURL().openConnection(...)
+          - pattern: (HttpClient $CLIENT).execute(new HttpGet($TARGET), ...)
+          - pattern: (RestTemplate $CLIENT).getForObject($TARGET, ...)
+          - pattern: (RestTemplate $CLIENT).exchange($TARGET, ...)
+
+  - id: secflow.java.log-injection
+    languages: [java]
+    severity: WARNING
+    message: 外部输入未经规范化写入日志，可能伪造日志记录或触发危险表达式解析。
+    metadata:
+      category: security
+      scenario: log_injection_lookup
+      cwe: [CWE-117]
+      confidence: MEDIUM
+      remediation: 使用结构化日志参数，并在写入前规范化 CR、LF 和表达式标记。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: $REQ.getParameter(...)
+          - pattern: $REQ.getHeader(...)
+          - patterns:
+              - pattern: $COOKIE.getValue(...)
+              - metavariable-regex:
+                  metavariable: $COOKIE
+                  regex: '(?i).*cookie.*'
+          - pattern: $REQ.getQueryString(...)
+    pattern-sanitizers:
+      - pattern-either:
+          - pattern: $VALUE.replace("\n", ...)
+          - pattern: $VALUE.replace("\r", ...)
+          - pattern: $VALUE.replaceAll(...)
+    pattern-sinks:
+      - pattern-either:
+          - pattern: $LOGGER.info($DATA)
+          - pattern: $LOGGER.info(..., $DATA, ...)
+          - pattern: $LOGGER.warn($DATA)
+          - pattern: $LOGGER.warn(..., $DATA, ...)
+          - pattern: $LOGGER.error($DATA)
+          - pattern: $LOGGER.error(..., $DATA, ...)
+          - pattern: $LOGGER.debug($DATA)
+          - pattern: $LOGGER.debug(..., $DATA, ...)
+
+  - id: secflow.java.unsafe-deserialization
+    languages: [java]
+    severity: ERROR
+    message: 不可信数据进入通用反序列化接口，可能构造危险对象图。
+    metadata:
+      category: security
+      scenario: deserialization
+      cwe: [CWE-502]
+      confidence: HIGH
+      remediation: 禁止原生对象反序列化；限制允许类型，并使用安全构造器和资源上限。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: $REQ.getInputStream(...)
+          - pattern: $REQ.getReader(...)
+          - pattern: $REQ.getParameter(...)
+          - pattern: $FILE.getInputStream(...)
+          - patterns:
+              - pattern-inside: |
+                  $RET $METHOD(..., String $INPUT, ...) {
+                    ...
+                  }
+              - pattern: (String $INPUT)
+              - focus-metavariable: $INPUT
+    pattern-sinks:
+      - pattern-either:
+          - pattern: (ObjectInputStream $STREAM).readObject(...)
+          - pattern: (Yaml $YAML).load($DATA)
+          - pattern: (ObjectMapper $MAPPER).readValue($DATA, Object.class)
+          - pattern: (ObjectMapper $MAPPER).enableDefaultTyping(...)
+          - pattern: (ObjectMapper $MAPPER).activateDefaultTyping(...)
+
+  - id: secflow.java.http-response-splitting
+    languages: [java]
+    severity: ERROR
+    message: 外部输入未经 CRLF 过滤进入 HTTP 响应头，可能造成响应拆分。
+    metadata:
+      category: security
+      scenario: response_splitting
+      cwe: [CWE-113]
+      confidence: HIGH
+      remediation: 拒绝 CR/LF 字符，并对响应头名称和值实施严格白名单。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: $REQ.getParameter(...)
+          - pattern: $REQ.getHeader(...)
+          - pattern: $COOKIE.getValue(...)
+          - patterns:
+              - pattern-inside: |
+                  $RET $METHOD(..., String $INPUT, ...) {
+                    ...
+                  }
+              - pattern: (String $INPUT)
+              - focus-metavariable: $INPUT
+    pattern-sanitizers:
+      - pattern-either:
+          - pattern: $VALUE.replace("\r", ...)
+          - pattern: $VALUE.replace("\n", ...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $RESP.setHeader($NAME, $VALUE)
+              - pattern: $RESP.addHeader($NAME, $VALUE)
+              - pattern: $RESP.sendRedirect($VALUE)
+          - metavariable-regex:
+              metavariable: $RESP
+              regex: '(?i).*(response|resp|reply|exchange).*'
+
+  - id: secflow.java.xxe-document-builder
+    languages: [java]
+    severity: ERROR
+    message: XML 解析器未明确禁用外部实体和 DOCTYPE，可能造成 XXE。
+    metadata:
+      category: security
+      scenario: xml_external_entity
+      cwe: [CWE-611]
+      confidence: HIGH
+      remediation: 禁用 DOCTYPE、外部通用实体和外部参数实体，并限制外部 DTD/Schema 访问。
+    patterns:
+      - pattern: $FACTORY = DocumentBuilderFactory.newInstance();
+      - pattern-inside: |
+          $RET $METHOD(...) {
+            ...
+          }
+      - pattern-not-inside: |
+          $RET $METHOD(...) {
+            ...
+            $FACTORY = DocumentBuilderFactory.newInstance();
+            ...
+            $FACTORY.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            ...
+          }
+
+  - id: secflow.java.weak-cryptography
+    languages: [java]
+    severity: WARNING
+    message: 使用已弃用或强度不足的密码算法。
+    metadata:
+      category: security
+      scenario: weak_cryptography
+      cwe: [CWE-327]
+      confidence: HIGH
+      remediation: 使用 AES-GCM、SHA-256 以上哈希及符合当前安全基线的 TLS 配置。
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern: $CIPHER.getInstance($ALGORITHM)
+              - metavariable-regex:
+                  metavariable: $ALGORITHM
+                  regex: '"(DES|DES/[^\"]*|AES/ECB/[^\"]*)"'
+          - patterns:
+              - pattern: $SSL.getInstance($PROTOCOL)
+              - metavariable-regex:
+                  metavariable: $PROTOCOL
+                  regex: '"(SSL|SSLv2|SSLv3|TLSv1|TLSv1\.0|TLSv1\.1)"'
+
+  - id: secflow.java.weak-hash
+    languages: [java]
+    severity: WARNING
+    message: 使用抗碰撞能力不足的哈希算法。
+    metadata:
+      category: security
+      scenario: weak_cryptography
+      cwe: [CWE-328]
+      confidence: HIGH
+      remediation: 密码存储使用 Argon2、scrypt 或 PBKDF2；完整性校验至少使用 SHA-256。
+    patterns:
+      - pattern-either:
+          - pattern: MessageDigest.getInstance($ALGORITHM)
+          - pattern: MessageDigest.getInstance($ALGORITHM, ...)
+          - pattern: java.security.MessageDigest.getInstance($ALGORITHM)
+          - pattern: java.security.MessageDigest.getInstance($ALGORITHM, ...)
+      - metavariable-regex:
+          metavariable: $ALGORITHM
+          regex: '"(?i:MD2|MD4|MD5|SHA|SHA-?1)"'
+
+  - id: secflow.java.trust-boundary-violation
+    languages: [java]
+    severity: ERROR
+    message: 外部输入未经验证写入服务端会话等信任域。
+    metadata:
+      category: security
+      scenario: trust_boundary
+      cwe: [CWE-501]
+      confidence: HIGH
+      remediation: 写入信任域前进行类型、长度和业务授权校验，不把客户端声明直接作为可信状态。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: $REQ.getParameter(...)
+          - pattern: $REQ.getParameterMap(...)
+          - pattern: $REQ.getHeader(...)
+          - pattern: $REQ.getHeaders(...)
+          - pattern: $COOKIE.getValue(...)
+          - pattern: $REQ.getCookies(...)
+          - pattern: $REQ.getQueryString(...)
+          - pattern: $HEADERS.nextElement(...)
+    pattern-sanitizers:
+      - pattern-either:
+          - pattern: Integer.parseInt(...)
+          - pattern: Long.parseLong(...)
+          - pattern: UUID.fromString(...)
+    pattern-sinks:
+      - pattern-either:
+          - pattern: $SESSION.setAttribute($NAME, $VALUE)
+          - pattern: $REQ.getSession(...).setAttribute($NAME, $VALUE)
+          - pattern: $SESSION.putValue($NAME, $VALUE)
+          - pattern: $REQ.getSession(...).putValue($NAME, $VALUE)
+
+  - id: secflow.java.insecure-cookie
+    languages: [java]
+    severity: ERROR
+    message: Cookie 未明确启用 Secure 属性，可能通过明文链路泄露。
+    metadata:
+      category: security
+      scenario: insecure_cookie
+      cwe: [CWE-614]
+      confidence: HIGH
+      remediation: 对承载身份、会话或敏感状态的 Cookie 调用 setSecure(true)，并同时启用 HttpOnly 和 SameSite。
+    patterns:
+      - pattern-inside: |
+          $RET $METHOD(...) {
+            ...
+          }
+      - pattern-either:
+          - pattern: Cookie $COOKIE = new Cookie(...);
+          - pattern: javax.servlet.http.Cookie $COOKIE = new javax.servlet.http.Cookie(...);
+      - pattern-not-inside: |
+          $RET $METHOD(...) {
+            ...
+            $COOKIE = new $COOKIETYPE(...);
+            ...
+            $COOKIE.setSecure(true);
+            ...
+          }
+
+  - id: secflow.java.finance.money-float
+    languages: [java]
+    severity: WARNING
+    message: 资金、余额、价格或手续费字段使用 float/double，可能造成金额精度偏差。
+    metadata:
+      category: security
+      scenario: funds_precision
+      cwe: [CWE-682]
+      confidence: MEDIUM
+      remediation: 金额、余额、手续费、汇率等资金字段应使用 BigDecimal 或最小货币单位 long，并明确舍入规则。
+    patterns:
+      - pattern-either:
+          - pattern: double $AMOUNT;
+          - pattern: float $AMOUNT;
+          - pattern: Double $AMOUNT;
+          - pattern: Float $AMOUNT;
+          - pattern: double $AMOUNT = ...;
+          - pattern: float $AMOUNT = ...;
+          - pattern: Double $AMOUNT = ...;
+          - pattern: Float $AMOUNT = ...;
+      - metavariable-regex:
+          metavariable: $AMOUNT
+          regex: '(?i).*(amount|money|balance|price|fee|rate|total|pay|paid|refund|charge|withdraw|deposit|debit|credit|settle).*'
+
+  - id: secflow.java.finance.bigdecimal-from-double-literal
+    languages: [java]
+    severity: WARNING
+    message: 使用 double/float 字面量构造 BigDecimal，可能把二进制浮点误差带入资金计算。
+    metadata:
+      category: security
+      scenario: funds_precision
+      cwe: [CWE-682]
+      confidence: HIGH
+      remediation: 使用字符串构造 BigDecimal，例如 new BigDecimal("0.01")，或使用最小货币单位 long。
+    pattern-regex: 'new\s+(?:java\.math\.)?BigDecimal\s*\(\s*[0-9]+\.[0-9]+[dDfF]?\s*\)'
+
+  - id: secflow.java.finance.bigdecimal-from-double-variable
+    languages: [java]
+    severity: WARNING
+    message: 使用 double/float 变量构造 BigDecimal，可能把二进制浮点误差带入资金计算。
+    metadata:
+      category: security
+      scenario: funds_precision
+      cwe: [CWE-682]
+      confidence: MEDIUM
+      remediation: 资金金额应从 String 或 long 最小货币单位转换为 BigDecimal，避免从 double/float 变量直接构造。
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern-inside: |
+                  $RET $METHOD(..., double $AMOUNT, ...) {
+                    ...
+                  }
+              - pattern: new BigDecimal($AMOUNT)
+          - patterns:
+              - pattern-inside: |
+                  $RET $METHOD(..., float $AMOUNT, ...) {
+                    ...
+                  }
+              - pattern: new BigDecimal($AMOUNT)
+          - patterns:
+              - pattern-inside: |
+                  $RET $METHOD(..., Double $AMOUNT, ...) {
+                    ...
+                  }
+              - pattern: new BigDecimal($AMOUNT)
+          - patterns:
+              - pattern-inside: |
+                  $RET $METHOD(..., Float $AMOUNT, ...) {
+                    ...
+                  }
+              - pattern: new BigDecimal($AMOUNT)
+          - patterns:
+              - pattern-inside: |
+                  double $AMOUNT = ...;
+                  ...
+              - pattern: new BigDecimal($AMOUNT)
+          - patterns:
+              - pattern-inside: |
+                  float $AMOUNT = ...;
+                  ...
+              - pattern: new BigDecimal($AMOUNT)
+          - patterns:
+              - pattern-inside: |
+                  Double $AMOUNT = ...;
+                  ...
+              - pattern: new BigDecimal($AMOUNT)
+          - patterns:
+              - pattern-inside: |
+                  Float $AMOUNT = ...;
+                  ...
+              - pattern: new BigDecimal($AMOUNT)
+      - metavariable-regex:
+          metavariable: $AMOUNT
+          regex: '(?i).*(amount|money|balance|price|fee|rate|total|pay|paid|refund|charge|withdraw|deposit|debit|credit|settle).*'
+
+  - id: secflow.java.finance.missing-idempotency-key
+    languages: [java]
+    severity: WARNING
+    message: 支付、转账、退款或提现 POST 接口未看到幂等键/请求去重校验，可能重复扣款、重复入账或重复退款。
+    metadata:
+      category: security
+      scenario: idempotency_missing
+      cwe: [CWE-841]
+      confidence: MEDIUM
+      remediation: 对资金请求使用 Idempotency-Key、业务流水号唯一索引或支付网关交易号去重，并把幂等记录与资金状态更新放在同一事务边界内。
+    patterns:
+      - pattern-either:
+          - pattern-inside: |
+              @PostMapping
+              $RET $METHOD(...) {
+                ...
+              }
+          - pattern-inside: |
+              @PutMapping
+              $RET $METHOD(...) {
+                ...
+              }
+          - pattern-inside: |
+              @PatchMapping
+              $RET $METHOD(...) {
+                ...
+              }
+          - pattern-inside: |
+              @PostMapping(...)
+              $RET $METHOD(...) {
+                ...
+              }
+          - pattern-inside: |
+              @PutMapping(...)
+              $RET $METHOD(...) {
+                ...
+              }
+          - pattern-inside: |
+              @PatchMapping(...)
+              $RET $METHOD(...) {
+                ...
+              }
+          - pattern-inside: |
+              @RequestMapping(..., method = RequestMethod.POST, ...)
+              $RET $METHOD(...) {
+                ...
+              }
+          - pattern-inside: |
+              @RequestMapping(..., method = RequestMethod.PUT, ...)
+              $RET $METHOD(...) {
+                ...
+              }
+          - pattern-inside: |
+              @RequestMapping(..., method = RequestMethod.PATCH, ...)
+              $RET $METHOD(...) {
+                ...
+              }
+          - pattern-inside: |
+              @RequestMapping(..., method = {RequestMethod.POST, ...}, ...)
+              $RET $METHOD(...) {
+                ...
+              }
+          - pattern-inside: |
+              @RequestMapping(..., method = {RequestMethod.PUT, ...}, ...)
+              $RET $METHOD(...) {
+                ...
+              }
+          - pattern-inside: |
+              @RequestMapping(..., method = {RequestMethod.PATCH, ...}, ...)
+              $RET $METHOD(...) {
+                ...
+              }
+      - metavariable-regex:
+          metavariable: $METHOD
+          regex: '(?i)^(?!(get|find|query|list|search|show|page|count|exists|check|validate|verify))(?!(.*(List|Status|Details?|Profile|Config|Setting|Statistics|Chart|RobotConfig|InitPlate|Limit)$))(?!(add|create|update|delete)?(payment)?details?$)(?!(create|update|delete)Plan$)(?!(alterActivity(FreezeAmount|TradedAmount)|createRobotConfig.*|audit(Pass|NoPass|Reject|Approve)?$)).*(pay|payment|payout|refund|transfer|fund|money|withdraw|deposit|recharge|settle|checkout|charge|credit|debit|freeze|thaw|remit|remittance|order|trade|batch|dividend).*'
+      - pattern-either:
+          - pattern: $SERVICE.$CALL(...)
+          - pattern: $REPOSITORY.save(...)
+          - pattern: $MAPPER.insert(...)
+          - pattern: $DAO.insert(...)
+      - metavariable-regex:
+          metavariable: $CALL
+          regex: '(?i)^(?!(get|find|query|list|show|load|fetch|read|page|count|exists|generate|authenticate|login|register|isTrue|notNull))(?!(.*(detail|details|profile|auth|token|jwt|email|watchlist|RobotConfig|InitPlate|Limit)))(?!(create|update|delete)Plan$).*(pay|payment|payout|refund|transfer|fund|money|withdraw|deposit|recharge|settle|checkout|charge|credit|debit|freeze|thaw|remit|remittance|order|trade|batch|dividend|save|create|insert|submit|process|proceed|place|cancel|increase|decrease).*'
+      - pattern-not-inside: |
+          $RET $METHOD(...) {
+            ...
+            $REQ.getHeader("Idempotency-Key");
+            ...
+          }
+      - pattern-not-inside: |
+          $RET $METHOD(...) {
+            ...
+            $REQ.getHeader("X-Idempotency-Key");
+            ...
+          }
+      - pattern-not-inside: |
+          $RET $METHOD(...) {
+            ...
+            $SERVICE.checkIdempotent(...);
+            ...
+          }
+      - pattern-not-inside: |
+          $RET $METHOD(...) {
+            ...
+            $SERVICE.idempotent(...);
+            ...
+          }
+      - pattern-not-inside: |
+          $RET $METHOD(...) {
+            ...
+            $SERVICE.isDuplicate(...);
+            ...
+          }
+      - pattern-not-inside: |
+          $RET $METHOD(...) {
+            ...
+            $SERVICE.matchRecord(...);
+            ...
+          }
+
+  - id: secflow.java.finance.money-operation-without-transaction
+    languages: [java]
+    severity: WARNING
+    message: 资金类方法执行余额、订单或交易状态更新时未看到事务边界，可能出现半成功、重复扣款或账务不一致。
+    metadata:
+      category: security
+      scenario: funds_transaction_boundary
+      cwe: [CWE-841]
+      confidence: MEDIUM
+      remediation: 将扣款、入账、订单状态变更、幂等流水写入放入同一事务，失败时整体回滚，并使用数据库唯一约束保护业务流水。
+    patterns:
+      - pattern-inside: |
+          $RET $METHOD(...) {
+            ...
+          }
+      - metavariable-regex:
+          metavariable: $METHOD
+          regex: '(?i).*(pay|payment|refund|transfer|fund|money|withdraw|deposit|recharge|settle|checkout|charge|debit|credit|trade).*'
+      - pattern-either:
+          - pattern: $ACCOUNT.setBalance(...)
+          - pattern: $REPOSITORY.save(...)
+          - pattern: $MAPPER.update(...)
+          - pattern: $DAO.update(...)
+          - pattern: $JDBC.update(...)
+      - pattern-not-inside: |
+          @Transactional
+          $RET $METHOD(...) {
+            ...
+          }
+      - pattern-not-inside: |
+          @org.springframework.transaction.annotation.Transactional
+          $RET $METHOD(...) {
+            ...
+          }
+
+  - id: secflow.java.weak-random
+    languages: [java]
+    severity: WARNING
+    message: 安全敏感值使用可预测随机数生成器。
+    metadata:
+      category: security
+      scenario: weak_random
+      cwe: [CWE-330]
+      confidence: HIGH
+      remediation: 令牌、密钥和会话标识应使用 SecureRandom 生成。
+    pattern-either:
+      - pattern: new Random(...)
+      - pattern: Math.random(...)
+      - pattern: new java.util.Random(...)
+      - pattern: java.lang.Math.random(...)

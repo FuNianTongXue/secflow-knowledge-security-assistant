@@ -1,0 +1,492 @@
+rules:
+  - id: secflow.go.recall-formatted-sql
+    languages: [go]
+    severity: ERROR
+    message: SQL 查询通过格式化占位符插入动态值，可能造成 SQL 注入。
+    metadata:
+      category: security
+      scenario: sql_injection
+      cwe: [CWE-89]
+      owasp: [A03:2021]
+      confidence: MEDIUM
+      profile: recall
+      remediation: 使用固定 SQL 模板和占位符参数，不要把外部输入拼接到查询文本。
+    patterns:
+      - pattern-either:
+          - pattern: fmt.Sprintf($FORMAT, $ARG, ...)
+          - pattern: fmt.Sprint($FORMAT, $ARG, ...)
+      - metavariable-regex:
+          metavariable: $FORMAT
+          regex: '(?is)^`?"?\s*(?:SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|WITH)\b.*%[-+ #0-9.*]*[a-zA-Z].*'
+      - metavariable-regex:
+          metavariable: $ARG
+          regex: '^(?!"|`|[0-9]+$).+'
+
+  - id: secflow.go.recall-xss-response
+    languages: [go]
+    severity: ERROR
+    message: 外部输入直接写入 HTTP 响应或被转换为可信模板类型，可能造成 XSS。
+    metadata:
+      category: security
+      scenario: cross_site_scripting
+      cwe: [CWE-79]
+      owasp: [A03:2021]
+      confidence: MEDIUM
+      profile: recall
+      remediation: 使用 html/template 自动转义，或按输出上下文编码后再写入响应。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: $R.URL.Query().Get(...)
+          - pattern: $R.FormValue(...)
+          - pattern: $R.PostFormValue(...)
+          - pattern: $R.Header.Get(...)
+          - pattern: $R.PathValue(...)
+          - pattern: $C.Param(...)
+          - pattern: $C.Query(...)
+          - pattern: $C.PostForm(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $W.Write($DATA)
+              - pattern: io.WriteString($W, $DATA)
+              - pattern: fmt.Fprint($W, $DATA, ...)
+              - pattern: fmt.Fprintf($W, $FORMAT, $DATA, ...)
+              - pattern: template.HTML($DATA)
+              - pattern: template.JS($DATA)
+              - pattern: template.URL($DATA)
+              - pattern: template.CSS($DATA)
+          - focus-metavariable: $DATA
+
+  - id: secflow.go.recall-dangerous-exec
+    languages: [go]
+    severity: ERROR
+    message: 非常量命令、参数或环境输入进入进程执行接口，可能造成命令或代码注入。
+    metadata:
+      category: security
+      scenario: command_execution
+      cwe: [CWE-78, CWE-94]
+      owasp: [A03:2021]
+      confidence: MEDIUM
+      profile: recall
+      remediation: 固定可执行文件，逐项验证参数，并禁止把输入交给 shell 解释。
+    patterns:
+      - pattern-either:
+          - pattern: exec.Command($CMD, ...)
+          - pattern: exec.CommandContext($CTX, $CMD, ...)
+          - pattern: syscall.Exec($CMD, ...)
+          - pattern: syscall.ForkExec($CMD, ...)
+      - pattern-not: exec.Command("...", ...)
+      - pattern-not: exec.CommandContext($CTX, "...", ...)
+
+  - id: secflow.go.recall-ssrf
+    languages: [go]
+    severity: ERROR
+    message: 外部输入控制服务端请求目标或主机，可能造成 SSRF。
+    metadata:
+      category: security
+      scenario: ssrf
+      cwe: [CWE-918]
+      owasp: [A10:2021]
+      confidence: MEDIUM
+      profile: recall
+      remediation: 对协议、主机、端口和解析后的地址使用允许列表并阻断内网地址。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: $R.URL.Query().Get(...)
+          - pattern: $R.FormValue(...)
+          - pattern: $R.PostFormValue(...)
+          - pattern: $R.Header.Get(...)
+          - pattern: $R.PathValue(...)
+          - pattern: $C.Param(...)
+          - pattern: $C.Query(...)
+          - pattern: os.Args[$INDEX]
+          - pattern: os.Getenv(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: http.Get($URL)
+              - pattern: http.Post($URL, ...)
+              - pattern: http.Head($URL)
+              - pattern: http.NewRequest($METHOD, $URL, ...)
+              - pattern: http.NewRequestWithContext($CTX, $METHOD, $URL, ...)
+              - pattern: url.Parse($URL)
+              - pattern: $URL.Host = $HOST
+              - pattern: $URL.RawPath = $HOST
+          - focus-metavariable: $URL
+
+  - id: secflow.go.recall-user-controlled-delay
+    languages: [go]
+    severity: WARNING
+    message: 外部输入控制休眠、定时器或超时时长，可能被用于拖慢服务或耗尽工作线程。
+    metadata:
+      category: security
+      scenario: resource_exhaustion
+      cwe: [CWE-400, CWE-1204]
+      owasp: [A04:2021]
+      confidence: MEDIUM
+      profile: recall
+      remediation: 对时长设置严格上限，并在进入定时器或休眠接口前完成数值校验。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: $R.URL.Query().Get(...)
+          - pattern: $R.FormValue(...)
+          - pattern: $R.PostFormValue(...)
+          - pattern: $R.Header.Get(...)
+          - pattern: $C.Param(...)
+          - pattern: $C.Query(...)
+          - pattern: os.Args[$INDEX]
+          - pattern: os.Getenv(...)
+          - pattern: flag.Arg(...)
+          - pattern: strconv.Atoi(...)
+          - pattern: strconv.ParseInt(...)
+          - pattern: strconv.ParseUint(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: time.Sleep($DURATION)
+              - pattern: time.After($DURATION)
+              - pattern: time.NewTimer($DURATION)
+              - pattern: time.NewTicker($DURATION)
+              - pattern: context.WithTimeout($CTX, $DURATION)
+              - pattern: context.WithDeadline($CTX, $DURATION)
+          - focus-metavariable: $DURATION
+
+  - id: secflow.go.recall-context-cancel-leak
+    languages: [go]
+    severity: WARNING
+    message: context 的 cancel 函数可能未调用，可能导致定时器、子上下文或关联资源持续存活。
+    metadata:
+      category: security
+      scenario: resource_exhaustion
+      cwe: [CWE-400]
+      owasp: [A04:2021]
+      confidence: LOW
+      profile: recall
+      remediation: 成功创建 context 后立即 defer cancel()，或在所有返回路径显式调用 cancel。
+    pattern-either:
+      - pattern: $CTX, _ := context.WithCancel(...)
+      - pattern: $CTX, _ := context.WithTimeout(...)
+      - pattern: $CTX, _ := context.WithDeadline(...)
+      - pattern: $CTX, _ = context.WithCancel(...)
+      - pattern: $CTX, _ = context.WithTimeout(...)
+      - pattern: $CTX, _ = context.WithDeadline(...)
+
+  - id: secflow.go.recall-fixed-crypto-nonce
+    languages: [go]
+    severity: ERROR
+    message: 固定或可预测的 IV/nonce 进入密码模式，可能泄露明文关系或破坏认证安全性。
+    metadata:
+      category: security
+      scenario: fixed_cryptographic_nonce
+      cwe: [CWE-1204]
+      owasp: [A02:2021]
+      confidence: HIGH
+      profile: recall
+      remediation: 每次加密使用 crypto/rand 生成满足算法长度要求且不重复的 IV/nonce。
+    pattern-either:
+      - pattern: 'cipher.NewCBCEncrypter($BLOCK, []byte("..."))'
+      - pattern: 'cipher.NewCBCEncrypter($BLOCK, []byte{...})'
+      - pattern: 'cipher.NewCFBEncrypter($BLOCK, []byte("..."))'
+      - pattern: 'cipher.NewCFBEncrypter($BLOCK, []byte{...})'
+      - pattern: 'cipher.NewCTR($BLOCK, []byte("..."))'
+      - pattern: 'cipher.NewCTR($BLOCK, []byte{...})'
+      - pattern: 'cipher.NewOFB($BLOCK, []byte("..."))'
+      - pattern: 'cipher.NewOFB($BLOCK, []byte{...})'
+      - pattern: '$AEAD.Seal($DST, []byte("..."), ...)'
+      - pattern: '$AEAD.Seal($DST, []byte{...}, ...)'
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  func $FUNC(...) {
+                    ...
+                    $NONCE := []byte("...")
+                    ...
+                  }
+              - pattern-inside: |
+                  func $FUNC(...) {
+                    ...
+                    $NONCE := []byte{...}
+                    ...
+                  }
+              - pattern-inside: |
+                  func $FUNC(...) $RET {
+                    ...
+                    $NONCE := []byte("...")
+                    ...
+                  }
+              - pattern-inside: |
+                  func $FUNC(...) $RET {
+                    ...
+                    $NONCE := []byte{...}
+                    ...
+                  }
+          - pattern-either:
+              - pattern: cipher.NewCBCEncrypter($BLOCK, $NONCE)
+              - pattern: cipher.NewCFBEncrypter($BLOCK, $NONCE)
+              - pattern: cipher.NewCTR($BLOCK, $NONCE)
+              - pattern: cipher.NewOFB($BLOCK, $NONCE)
+              - pattern: $AEAD.Seal($DST, $NONCE, ...)
+
+  - id: secflow.go.recall-math-random
+    languages: [go]
+    severity: WARNING
+    message: 使用 math/rand 生成不可预测值可能泄露令牌、会话标识、密钥或随机挑战。
+    metadata:
+      category: security
+      scenario: weak_random
+      cwe: [CWE-338]
+      owasp: [A02:2021]
+      confidence: LOW
+      profile: recall
+      remediation: 安全敏感随机值使用 crypto/rand；非安全用途可在复核后忽略。
+    pattern-either:
+      - pattern: rand.Int(...)
+      - pattern: rand.Intn(...)
+      - pattern: rand.Int31(...)
+      - pattern: rand.Int31n(...)
+      - pattern: rand.Int63(...)
+      - pattern: rand.Int63n(...)
+      - pattern: rand.Float32(...)
+      - pattern: rand.Float64(...)
+      - pattern: rand.New(...)
+      - pattern: rand.NewSource(...)
+      - pattern: rand.Read(...)
+
+  - id: secflow.go.recall-weak-cryptography
+    languages: [go]
+    severity: WARNING
+    message: 代码使用弱哈希、弱密码算法或过时 TLS 版本，安全用途可能不再可靠。
+    metadata:
+      category: security
+      scenario: weak_cryptography
+      cwe: [CWE-327, CWE-328]
+      owasp: [A02:2021]
+      confidence: MEDIUM
+      profile: recall
+      remediation: 使用 SHA-256 及以上哈希、AES-GCM 或 ChaCha20-Poly1305，并要求 TLS 1.2 以上。
+    pattern-either:
+      - pattern: md5.New()
+      - pattern: md5.Sum(...)
+      - pattern: sha1.New()
+      - pattern: sha1.Sum(...)
+      - pattern: sha256.New224()
+      - pattern: sha256.Sum224(...)
+      - pattern: des.NewCipher(...)
+      - pattern: des.NewTripleDESCipher(...)
+      - pattern: rc4.NewCipher(...)
+      - pattern: tls.VersionSSL30
+      - pattern: tls.VersionTLS10
+      - pattern: tls.VersionTLS11
+
+  - id: secflow.go.recall-insecure-tls
+    languages: [go]
+    severity: ERROR
+    message: TLS 验证被关闭或使用始终接受证书的回调，可能遭受中间人攻击。
+    metadata:
+      category: security
+      scenario: insecure_transport
+      cwe: [CWE-295, CWE-319]
+      owasp: [A02:2021]
+      confidence: HIGH
+      profile: recall
+      remediation: 保持证书和主机名验证开启，配置可信根证书并限制最低 TLS 版本。
+    pattern-either:
+      - pattern: 'tls.Config{..., InsecureSkipVerify: true, ...}'
+      - pattern: '&tls.Config{..., InsecureSkipVerify: true, ...}'
+      - pattern: $CONFIG.InsecureSkipVerify = true
+      - pattern: 'tls.Config{..., VerifyPeerCertificate: func(...) error { return nil }, ...}'
+      - pattern: '&tls.Config{..., VerifyPeerCertificate: func(...) error { return nil }, ...}'
+
+  - id: secflow.go.recall-plaintext-protocol
+    languages: [go]
+    severity: WARNING
+    message: 代码中使用 HTTP、FTP 或 Telnet 明文协议，敏感数据可能在传输中泄露。
+    metadata:
+      category: security
+      scenario: insecure_transport
+      cwe: [CWE-319]
+      owasp: [A02:2021]
+      confidence: LOW
+      profile: recall
+      remediation: 使用 HTTPS、SFTP/FTPS 或 SSH，并验证服务端身份。
+    pattern-regex: '(?i)"(?:http|ftp|telnet)://[^"\\s]+"'
+
+  - id: secflow.go.recall-hardcoded-secret
+    languages: [go]
+    severity: ERROR
+    message: 敏感字段被赋予非空字符串常量，召回优先模式下按潜在硬编码凭据处理。
+    metadata:
+      category: security
+      scenario: hardcoded_credential
+      cwe: [CWE-798]
+      owasp: [A07:2021]
+      confidence: LOW
+      profile: recall
+      remediation: 从密钥管理服务或受保护的环境变量读取凭据，并轮换已提交的值。
+    pattern-regex: '(?i)(?:password|passwd|pwd|secret|credential|token|api_?key|access_?key|private_?key|client_?(?:id|secret)|auth_?key|jwt_?key)[A-Za-z0-9_]*"?\s*(?:=|:=|:)\s*"[^"\\n]{8,}"'
+
+  - id: secflow.go.recall-provider-secret
+    languages: [go]
+    severity: ERROR
+    message: 源码中出现长令牌、私钥或具有常见提供商格式的凭据。
+    metadata:
+      category: security
+      scenario: hardcoded_credential
+      cwe: [CWE-798]
+      owasp: [A07:2021]
+      confidence: MEDIUM
+      profile: recall
+      remediation: 立即撤销并轮换凭据，改为通过密钥管理服务注入。
+    pattern-regex: '(?i)(?:-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|(?:sk|pk)_(?:live|test)_[A-Za-z0-9]{16,}|(?:gh[pousr]|glpat|dop_v1|xox[baprs]|SG|key)-?[A-Za-z0-9_.-]{16,}|AIza[A-Za-z0-9_-]{30,}|AKIA[A-Z0-9]{16}|[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,})'
+
+  - id: secflow.go.recall-insecure-cookie
+    languages: [go]
+    severity: WARNING
+    message: Cookie 缺少 Secure 或 HttpOnly 属性，可能通过明文传输或脚本访问泄露。
+    metadata:
+      category: security
+      scenario: insecure_cookie
+      cwe: [CWE-614, CWE-1004]
+      owasp: [A05:2021]
+      confidence: MEDIUM
+      profile: recall
+      remediation: 会话 Cookie 同时设置 Secure、HttpOnly 和合适的 SameSite 策略。
+    pattern-either:
+      - patterns:
+          - pattern: 'http.Cookie{...}'
+          - pattern-not: 'http.Cookie{..., Secure: true, ...}'
+      - patterns:
+          - pattern: '&http.Cookie{...}'
+          - pattern-not: '&http.Cookie{..., Secure: true, ...}'
+      - pattern: $COOKIE.Secure = false
+      - pattern: $COOKIE.HttpOnly = false
+
+  - id: secflow.go.recall-permissive-file-mode
+    languages: [go]
+    severity: WARNING
+    message: 文件或目录权限允许组用户或其他用户写入，可能造成未授权修改。
+    metadata:
+      category: security
+      scenario: insecure_permissions
+      cwe: [CWE-276]
+      owasp: [A01:2021]
+      confidence: MEDIUM
+      profile: recall
+      remediation: 文件使用 0600/0640，目录使用 0700/0750，并按最小权限配置。
+    pattern-either:
+      - pattern: os.Chmod($PATH, 0777)
+      - pattern: os.Chmod($PATH, 0775)
+      - pattern: os.Mkdir($PATH, 0777)
+      - pattern: os.MkdirAll($PATH, 0777)
+      - pattern: os.OpenFile($PATH, $FLAGS, 0666)
+      - pattern: os.WriteFile($PATH, $DATA, 0666)
+
+  - id: secflow.go.recall-unbounded-http-server
+    languages: [go]
+    severity: WARNING
+    message: HTTP 服务缺少读取头或整体请求超时，可能遭受慢请求资源耗尽。
+    metadata:
+      category: security
+      scenario: resource_exhaustion
+      cwe: [CWE-400, CWE-676]
+      owasp: [A05:2021]
+      confidence: LOW
+      profile: recall
+      remediation: 使用 http.Server 并配置 ReadHeaderTimeout、ReadTimeout、WriteTimeout 和 IdleTimeout。
+    pattern-either:
+      - pattern: http.ListenAndServe(...)
+      - pattern: http.ListenAndServeTLS(...)
+
+  - id: secflow.go.recall-bind-all-interfaces
+    languages: [go]
+    severity: WARNING
+    message: 服务绑定所有网络接口，可能意外暴露管理、调试或内部端口。
+    metadata:
+      category: security
+      scenario: exposed_service
+      cwe: [CWE-200]
+      owasp: [A05:2021]
+      confidence: LOW
+      profile: recall
+      remediation: 绑定明确的受信地址，并通过防火墙和认证限制访问。
+    pattern-regex: '(?i)(?:ListenAndServe|net\.Listen|ListenPacket)\s*\([^\n]*(?:"0\.0\.0\.0:|"\[::\]:|":\d+)'
+
+  - id: secflow.go.recall-directory-listing
+    languages: [go]
+    severity: WARNING
+    message: 文件服务可能允许目录浏览并泄露文件名或内部目录结构。
+    metadata:
+      category: security
+      scenario: information_exposure
+      cwe: [CWE-548]
+      owasp: [A05:2021]
+      confidence: LOW
+      profile: recall
+      remediation: 禁用目录列表，只暴露明确允许的静态资源并设置访问控制。
+    pattern-either:
+      - pattern: http.FileServer(...)
+      - pattern: http.StripPrefix($PREFIX, http.FileServer(...))
+
+  - id: secflow.go.recall-text-template
+    languages: [go]
+    severity: WARNING
+    message: Web 输出路径使用 text/template 不提供 HTML 上下文转义，可能造成 XSS。
+    metadata:
+      category: security
+      scenario: cross_site_scripting
+      cwe: [CWE-79]
+      owasp: [A03:2021]
+      confidence: LOW
+      profile: recall
+      remediation: Web 页面使用 html/template，并避免把外部输入标记为可信类型。
+    pattern-regex: '(?m)^\s*(?:[A-Za-z0-9_.]+\s+)?"text/template"\s*$'
+
+  - id: secflow.go.recall-jwt-none
+    languages: [go]
+    severity: ERROR
+    message: JWT 解析或签名允许 none 算法，可能绕过令牌完整性验证。
+    metadata:
+      category: security
+      scenario: authentication_bypass
+      cwe: [CWE-287, CWE-345, CWE-346]
+      owasp: [A07:2021]
+      confidence: HIGH
+      profile: recall
+      remediation: 固定允许的非对称或 HMAC 算法，并验证算法、签名、签发者和受众。
+    pattern-either:
+      - pattern: jwt.SigningMethodNone
+      - pattern: jwt.UnsafeAllowNoneSignatureType
+      - pattern: jwt.NewParser(..., jwt.WithValidMethods([]string{..., "none", ...}), ...)
+
+  - id: secflow.go.recall-insecure-grpc
+    languages: [go]
+    severity: WARNING
+    message: gRPC 连接显式使用不安全传输凭据，敏感数据可能被窃听或篡改。
+    metadata:
+      category: security
+      scenario: insecure_transport
+      cwe: [CWE-319]
+      owasp: [A02:2021]
+      confidence: HIGH
+      profile: recall
+      remediation: 使用 TLS transport credentials 并验证服务端身份。
+    pattern-either:
+      - pattern: grpc.WithInsecure()
+      - pattern: grpc.WithTransportCredentials(insecure.NewCredentials())
+
+  - id: secflow.go.recall-fixed-temp-path
+    languages: [go]
+    severity: WARNING
+    message: 使用可预测的共享临时文件路径可能造成符号链接、覆盖或竞争条件攻击。
+    metadata:
+      category: security
+      scenario: insecure_temporary_file
+      cwe: [CWE-377]
+      owasp: [A01:2021]
+      confidence: LOW
+      profile: recall
+      remediation: 使用 os.CreateTemp 或 os.MkdirTemp 创建权限受限且不可预测的路径。
+    pattern-regex: '(?i)(?:os\.(?:Create|OpenFile|WriteFile)|ioutil\.WriteFile)\s*\(\s*"(?:/tmp|/var/tmp)/[^"$]+"'

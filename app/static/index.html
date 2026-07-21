@@ -3,22 +3,38 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SecFlow 知识库安全助手</title>
+    <title>安全智脑</title>
     <link rel="stylesheet" href="/static/app.css" />
   </head>
   <body>
     <main class="shell">
       <header class="hero">
-        <div>
-          <span class="eyebrow">ShenSiQi · Source-available</span>
-          <h1>知识库安全助手</h1>
-          <p>LangGraph 安全问答，支持中文结构化漏洞卡片与客户可见信息脱敏。</p>
+        <div class="hero-brand">
+          <div class="brand-logo" aria-hidden="true">
+            <svg viewBox="0 0 64 64" role="img">
+              <path d="M32 11l18 7v13c0 11.9-7.2 19.4-18 23-10.8-3.6-18-11.1-18-23V18l18-7z" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/>
+              <path d="M32 23.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8 2.6-5.3z" fill="currentColor"/>
+            </svg>
+          </div>
+          <div>
+            <span id="brandVersion" class="eyebrow">安全智脑 · v1.2.0 内测版</span>
+            <h1 id="brandName">安全智脑</h1>
+            <p id="brandSubtitle">Security AI Assistant</p>
+            <p>LangGraph 安全问答，支持中文结构化漏洞卡片与客户可见信息脱敏。</p>
+          </div>
         </div>
         <div class="license-badge">
           <b>商业许可</b>
           <span>禁止再分发</span>
         </div>
       </header>
+      <section id="trialBanner" class="trial-banner hidden" aria-live="polite">
+        <div>
+          <b>三天试用版</b>
+          <span id="trialMessage">正在读取试用状态...</span>
+        </div>
+        <strong id="trialCountdown">--:--:--</strong>
+      </section>
       <div id="runtimeStatus" class="runtime-status"></div>
 
       <section class="grid">
@@ -55,16 +71,16 @@
         <div class="panel-head">
           <div>
             <h2>采集配置</h2>
-            <p>配置 CVE 漏洞库与 GitHub Advisory 采集源。</p>
+            <p>固定情报接口由内部服务托管，页面仅保留兼容入口。</p>
           </div>
           <button id="reloadConfig" class="ghost">刷新</button>
         </div>
         <div class="collector-grid">
           <form class="collector-card" data-collector="cve">
-            <h3>CVE 漏洞库</h3>
+            <h3>固定情报接口 1</h3>
             <label><span>启用</span><input name="enabled" type="checkbox" /></label>
-            <label><span>NVD API URL</span><input name="api_url" /></label>
-            <label><span>NVD API Key</span><input name="api_key" type="password" placeholder="留空则保留当前密钥" /></label>
+            <label><span>内部接口 URL</span><input name="api_url" /></label>
+            <label><span>接口密钥</span><input name="api_key" type="password" placeholder="留空则使用内部配置" /></label>
             <label><span>集合</span><input name="collection_name" /></label>
             <label><span>等级过滤</span><input name="severity_filter" placeholder="CRITICAL,HIGH,MEDIUM" /></label>
             <label><span>采集数量</span><input name="max_results" type="number" min="1" max="5000" /></label>
@@ -78,10 +94,10 @@
           </form>
 
           <form class="collector-card" data-collector="github_advisory">
-            <h3>GitHub Advisory</h3>
+            <h3>固定情报接口 2</h3>
             <label><span>启用</span><input name="enabled" type="checkbox" /></label>
-            <label><span>API URL</span><input name="api_url" /></label>
-            <label><span>GitHub Token</span><input name="token" type="password" placeholder="留空则保留当前令牌" /></label>
+            <label><span>内部接口 URL</span><input name="api_url" /></label>
+            <label><span>接口令牌</span><input name="token" type="password" placeholder="留空则使用内部配置" /></label>
             <label><span>集合</span><input name="collection_name" /></label>
             <label><span>等级过滤</span><input name="severity_filter" placeholder="critical,high,medium" /></label>
             <label><span>生态</span><input name="ecosystem" placeholder="npm, pip, maven..." /></label>
@@ -101,13 +117,24 @@
         <div class="panel-head">
           <div>
             <h2>知识记录</h2>
-            <p>来自 CVE 与 GitHub Advisory 的本地漏洞记录。</p>
+            <p>来自内部查询链路的本地漏洞记录。</p>
           </div>
           <span id="recordStats" class="stat-pill">0 条记录</span>
         </div>
         <div id="records" class="records"></div>
       </section>
     </main>
+    <div id="trialBlocked" class="trial-blocked hidden" role="alertdialog" aria-modal="true" aria-labelledby="trialBlockedTitle">
+      <section class="trial-blocked__dialog">
+        <span class="trial-blocked__label">安全智脑 · 三天试用版</span>
+        <h2 id="trialBlockedTitle">试用功能已停用</h2>
+        <p id="trialBlockedMessage">三天试用期已结束。</p>
+        <dl>
+          <div><dt>首次启动</dt><dd id="trialStartedAt">-</dd></div>
+          <div><dt>到期时间</dt><dd id="trialExpiresAt">-</dd></div>
+        </dl>
+      </section>
+    </div>
     <script src="/static/app.js" type="module"></script>
   </body>
 </html>

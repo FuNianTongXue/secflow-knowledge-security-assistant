@@ -1,0 +1,65 @@
+SecFlow Third-Party Notices
+===========================
+
+Semgrep OSS 1.170.0
+-------------------
+
+Copyright Semgrep, Inc. and contributors.
+License: GNU Lesser General Public License version 2.1 (LGPL-2.1-only).
+Source: https://github.com/semgrep/semgrep/tree/v1.170.0
+
+The corresponding license text is distributed as Semgrep-LGPL-2.1.txt.
+SecFlow invokes Semgrep as a separate executable and does not modify Semgrep.
+The rules under Contents/Resources/semgrep-rules are SecFlow-owned rules and
+are not copied from the Semgrep Registry.
+
+Tree-sitter Python bindings 0.25.2
+----------------------------------
+
+Copyright (c) 2019 Max Brunsfeld, GitHub.
+License: MIT.
+Source: https://github.com/tree-sitter/py-tree-sitter/tree/v0.25.2
+
+The corresponding license text is distributed as Tree-sitter-MIT.txt.
+
+Tree-sitter Java 0.23.5
+-----------------------
+
+Copyright (c) 2017 Ayman Nadeem.
+License: MIT.
+Source: https://github.com/tree-sitter/tree-sitter-java/tree/v0.23.5
+
+The corresponding license text is distributed as Tree-sitter-Java-MIT.txt.
+
+Tree-sitter language grammars
+-----------------------------
+
+The packaged parser includes these MIT-licensed language grammars:
+
+- tree-sitter-python 0.25.0: https://github.com/tree-sitter/tree-sitter-python
+- tree-sitter-go 0.25.0: https://github.com/tree-sitter/tree-sitter-go
+- tree-sitter-c 0.24.2: https://github.com/tree-sitter/tree-sitter-c
+- tree-sitter-cpp 0.23.4: https://github.com/tree-sitter/tree-sitter-cpp
+- tree-sitter-rust 0.24.2: https://github.com/tree-sitter/tree-sitter-rust
+- tree-sitter-solidity 1.2.13: https://github.com/JoranHonig/tree-sitter-solidity
+
+Copyright belongs to the respective grammar contributors. Corresponding
+license texts are distributed as Tree-sitter-<grammar>-MIT.txt.
+
+D3 7.9.0
+--------
+
+Copyright 2010-2023 Mike Bostock.
+License: ISC.
+Source: https://github.com/d3/d3/tree/v7.9.0
+
+The corresponding license text is distributed as D3-ISC.txt.
+
+D3 Sankey 0.12.3
+----------------
+
+Copyright 2015 Mike Bostock.
+License: BSD-3-Clause.
+Source: https://github.com/d3/d3-sankey/tree/v0.12.3
+
+The corresponding license text is distributed as D3-Sankey-BSD-3-Clause.txt.

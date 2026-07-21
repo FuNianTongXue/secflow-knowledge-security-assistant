@@ -1,0 +1,148 @@
+rules:
+  - id: secflow.python.sql-injection
+    languages: [python]
+    severity: ERROR
+    message: 外部输入进入动态 SQL 查询，可能造成 SQL 注入。
+    metadata:
+      category: security
+      scenario: sql_injection
+      cwe: [CWE-89]
+      owasp: [A03:2021]
+      confidence: HIGH
+      remediation: 使用参数化查询，将 SQL 模板与外部参数分开绑定。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: request.args.get(...)
+          - pattern: request.form.get(...)
+          - pattern: request.values.get(...)
+          - pattern: request.get_json(...)
+          - pattern: $REQ.GET.get(...)
+          - pattern: $REQ.POST.get(...)
+          - pattern: $REQ.query_params.get(...)
+          - pattern: input(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: $DB.execute($QUERY, ...)
+              - pattern: $DB.executemany($QUERY, ...)
+              - pattern: $CURSOR.execute($QUERY, ...)
+              - pattern: $CURSOR.executemany($QUERY, ...)
+          - focus-metavariable: $QUERY
+
+  - id: secflow.python.command-injection
+    languages: [python]
+    severity: ERROR
+    message: 外部输入进入系统命令执行接口，可能造成命令注入。
+    metadata:
+      category: security
+      scenario: command_execution
+      cwe: [CWE-78]
+      owasp: [A03:2021]
+      confidence: HIGH
+      remediation: 使用固定可执行文件与参数数组，并对参数执行严格白名单校验。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: request.args.get(...)
+          - pattern: request.form.get(...)
+          - pattern: request.values.get(...)
+          - pattern: $REQ.GET.get(...)
+          - pattern: $REQ.POST.get(...)
+          - pattern: $REQ.query_params.get(...)
+          - pattern: input(...)
+          - pattern: os.environ.get(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: os.system($CMD)
+              - pattern: os.popen($CMD, ...)
+              - pattern: subprocess.run($CMD, ..., shell=True, ...)
+              - pattern: subprocess.call($CMD, ..., shell=True, ...)
+              - pattern: subprocess.Popen($CMD, ..., shell=True, ...)
+          - focus-metavariable: $CMD
+
+  - id: secflow.python.path-traversal
+    languages: [python]
+    severity: ERROR
+    message: 外部输入直接控制文件系统路径，可能造成路径穿越。
+    metadata:
+      category: security
+      scenario: path_traversal
+      cwe: [CWE-22]
+      owasp: [A01:2021]
+      confidence: HIGH
+      remediation: 将规范化后的路径限制在固定根目录内，并拒绝绝对路径和父目录跳转。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: request.args.get(...)
+          - pattern: request.form.get(...)
+          - pattern: $REQ.GET.get(...)
+          - pattern: $REQ.POST.get(...)
+          - pattern: $REQ.path_params.get(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: open($PATH, ...)
+              - pattern: pathlib.Path($PATH).read_text(...)
+              - pattern: pathlib.Path($PATH).read_bytes(...)
+              - pattern: send_file($PATH, ...)
+          - focus-metavariable: $PATH
+
+  - id: secflow.python.ssrf
+    languages: [python]
+    severity: ERROR
+    message: 外部输入控制服务端请求地址，可能造成 SSRF。
+    metadata:
+      category: security
+      scenario: ssrf
+      cwe: [CWE-918]
+      owasp: [A10:2021]
+      confidence: HIGH
+      remediation: 对协议、域名、端口和解析后的 IP 实施允许列表，并阻断内网和链路本地地址。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: request.args.get(...)
+          - pattern: request.form.get(...)
+          - pattern: $REQ.GET.get(...)
+          - pattern: $REQ.POST.get(...)
+          - pattern: $REQ.query_params.get(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: requests.get($URL, ...)
+              - pattern: requests.post($URL, ...)
+              - pattern: requests.request($METHOD, $URL, ...)
+              - pattern: httpx.get($URL, ...)
+              - pattern: httpx.post($URL, ...)
+              - pattern: urllib.request.urlopen($URL, ...)
+          - focus-metavariable: $URL
+
+  - id: secflow.python.unsafe-deserialization
+    languages: [python]
+    severity: ERROR
+    message: 不可信输入进入 Python 反序列化接口，可能造成任意对象构造或代码执行。
+    metadata:
+      category: security
+      scenario: deserialization
+      cwe: [CWE-502]
+      owasp: [A08:2021]
+      confidence: HIGH
+      remediation: 禁止对外部数据使用 pickle、marshal 或不安全 YAML Loader，改用受约束的数据格式。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: request.get_data(...)
+          - pattern: request.data
+          - pattern: $REQ.body
+          - pattern: $REQ.get_data(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: pickle.loads($DATA, ...)
+              - pattern: pickle.load($DATA, ...)
+              - pattern: marshal.loads($DATA, ...)
+              - pattern: yaml.unsafe_load($DATA, ...)
+          - focus-metavariable: $DATA

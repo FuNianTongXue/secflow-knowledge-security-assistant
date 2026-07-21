@@ -1,0 +1,113 @@
+rules:
+  - id: secflow.c-cpp.command-injection
+    languages: [c, cpp]
+    severity: ERROR
+    message: 环境变量或命令行参数进入 shell 命令接口，可能造成命令注入。
+    metadata:
+      category: security
+      scenario: command_execution
+      cwe: [CWE-78]
+      owasp: [A03:2021]
+      confidence: HIGH
+      remediation: 避免 shell，使用固定程序路径和参数数组，并对每个参数实施允许列表。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: getenv(...)
+          - pattern: $ARGV[$INDEX]
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: system($CMD)
+              - pattern: popen($CMD, ...)
+              - pattern: execl($PATH, $CMD, ...)
+              - pattern: execlp($PATH, $CMD, ...)
+          - focus-metavariable: $CMD
+
+  - id: secflow.c.path-traversal
+    languages: [c]
+    severity: ERROR
+    message: 外部输入直接进入文件打开接口，可能造成路径穿越。
+    metadata:
+      category: security
+      scenario: path_traversal
+      cwe: [CWE-22]
+      owasp: [A01:2021]
+      confidence: HIGH
+      remediation: 规范化路径并验证其位于固定根目录，拒绝绝对路径和父目录跳转。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: getenv(...)
+          - pattern: $ARGV[$INDEX]
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: fopen($PATH, ...)
+              - pattern: open($PATH, ...)
+          - focus-metavariable: $PATH
+
+  - id: secflow.cpp.path-traversal
+    languages: [cpp]
+    severity: ERROR
+    message: 外部输入直接进入文件打开接口，可能造成路径穿越。
+    metadata:
+      category: security
+      scenario: path_traversal
+      cwe: [CWE-22]
+      owasp: [A01:2021]
+      confidence: HIGH
+      remediation: 规范化路径并验证其位于固定根目录，拒绝绝对路径和父目录跳转。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: getenv(...)
+          - pattern: $ARGV[$INDEX]
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: fopen($PATH, ...)
+              - pattern: open($PATH, ...)
+              - pattern: $STREAM.open($PATH, ...)
+          - focus-metavariable: $PATH
+
+  - id: secflow.c-cpp.dangerous-buffer-copy
+    languages: [c, cpp]
+    severity: ERROR
+    message: 使用无边界字符串或输入函数，可能造成缓冲区溢出。
+    metadata:
+      category: security
+      scenario: memory_safety
+      cwe: [CWE-120]
+      owasp: [A06:2021]
+      confidence: MEDIUM
+      remediation: 使用显式容量检查的接口，并确保目标缓冲区大小覆盖终止符。
+    pattern-either:
+      - pattern: strcpy(...)
+      - pattern: strcat(...)
+      - pattern: sprintf(...)
+      - pattern: gets(...)
+
+  - id: secflow.c-cpp.format-string
+    languages: [c, cpp]
+    severity: ERROR
+    message: 外部输入被用作格式化字符串，可能造成格式化字符串漏洞。
+    metadata:
+      category: security
+      scenario: format_string
+      cwe: [CWE-134]
+      owasp: [A03:2021]
+      confidence: HIGH
+      remediation: 使用固定格式字符串，例如 printf("%s", value)。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: getenv(...)
+          - pattern: $ARGV[$INDEX]
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: printf($FORMAT)
+              - pattern: fprintf($STREAM, $FORMAT)
+              - pattern: syslog($LEVEL, $FORMAT)
+          - focus-metavariable: $FORMAT

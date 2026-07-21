@@ -1,0 +1,107 @@
+rules:
+  - id: secflow.rust.command-injection
+    languages: [rust]
+    severity: ERROR
+    message: 外部环境输入进入命令执行接口，可能造成命令注入。
+    metadata:
+      category: security
+      scenario: command_execution
+      cwe: [CWE-78]
+      owasp: [A03:2021]
+      confidence: HIGH
+      remediation: 固定可执行文件并对白名单参数逐项校验，禁止通过 shell 解释外部输入。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: std::env::var(...)
+          - pattern: env::var(...)
+          - pattern: std::env::args().nth(...)
+          - pattern: env::args().nth(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: std::process::Command::new($CMD)
+              - pattern: process::Command::new($CMD)
+              - pattern: Command::new($CMD)
+          - focus-metavariable: $CMD
+
+  - id: secflow.rust.path-traversal
+    languages: [rust]
+    severity: ERROR
+    message: 外部输入直接控制文件系统路径，可能造成路径穿越。
+    metadata:
+      category: security
+      scenario: path_traversal
+      cwe: [CWE-22]
+      owasp: [A01:2021]
+      confidence: HIGH
+      remediation: 规范化路径并验证其位于固定根目录，拒绝绝对路径和父目录跳转。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: std::env::var(...)
+          - pattern: env::var(...)
+          - pattern: std::env::args().nth(...)
+          - pattern: env::args().nth(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: std::fs::read($PATH)
+              - pattern: std::fs::read_to_string($PATH)
+              - pattern: std::fs::File::open($PATH)
+              - pattern: fs::read($PATH)
+              - pattern: fs::File::open($PATH)
+          - focus-metavariable: $PATH
+
+  - id: secflow.rust.ssrf
+    languages: [rust]
+    severity: ERROR
+    message: 外部输入控制服务端请求目标，可能造成 SSRF。
+    metadata:
+      category: security
+      scenario: ssrf
+      cwe: [CWE-918]
+      owasp: [A10:2021]
+      confidence: HIGH
+      remediation: 对协议、主机、端口和解析后的地址实施允许列表，并阻断内网地址。
+    mode: taint
+    pattern-sources:
+      - pattern-either:
+          - pattern: std::env::var(...)
+          - pattern: env::var(...)
+    pattern-sinks:
+      - patterns:
+          - pattern-either:
+              - pattern: reqwest::get($URL)
+              - pattern: $CLIENT.get($URL)
+              - pattern: $CLIENT.post($URL)
+          - focus-metavariable: $URL
+
+  - id: secflow.rust.unsafe-block
+    languages: [rust]
+    severity: WARNING
+    message: unsafe 块扩大了内存安全审计边界，需要验证指针、生命周期和并发不变量。
+    metadata:
+      category: security
+      scenario: memory_safety
+      cwe: [CWE-119]
+      owasp: [A06:2021]
+      confidence: LOW
+      remediation: 缩小 unsafe 块，封装并记录必须由调用方维持的安全不变量。
+    pattern: unsafe { ... }
+
+  - id: secflow.rust.weak-cryptography
+    languages: [rust]
+    severity: WARNING
+    message: 安全敏感代码使用 MD5 或 SHA-1，可能不满足密码学安全要求。
+    metadata:
+      category: security
+      scenario: weak_cryptography
+      cwe: [CWE-327]
+      owasp: [A02:2021]
+      confidence: MEDIUM
+      remediation: 使用 SHA-256 以上算法；密码存储使用 Argon2id、scrypt 或 bcrypt。
+    pattern-either:
+      - pattern: md5::compute(...)
+      - pattern: Md5::new(...)
+      - pattern: Sha1::new(...)

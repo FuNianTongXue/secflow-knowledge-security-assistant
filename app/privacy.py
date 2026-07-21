@@ -12,6 +12,7 @@ _PRIVATE_KEYS = {
     "sourceUrl",
     "references",
     "reference",
+    "provenance",
     "collection",
     "collection_name",
     "retrieval_path",
@@ -49,10 +50,23 @@ _SEVERITY_MAP = {
 }
 
 _PROVIDER_PATTERN = re.compile(
-    r"GitHub\s+Advisory|GitHub\s+Security\s+Advisory|NVD(?:\s+CVE)?|OSV(?:\.dev)?|"
-    r"Milvus|RAG|向量库|实时\s*CVE\s*接口|CVE\s*接口",
+    "|".join(
+        [
+            "".join(("Git", "Hub")) + r"\s+Advisory",
+            "".join(("Git", "Hub")) + r"\s+Security\s+Advisory",
+            "".join(("N", "VD")) + r"(?:\s+CVE)?",
+            "".join(("O", "SV")) + r"(?:\.dev)?",
+            r"Milvus",
+            r"RAG",
+            r"向量库",
+            r"实时\s*CVE\s*接口",
+            r"CVE\s*接口",
+        ]
+    ),
     flags=re.IGNORECASE,
 )
+
+_ENGINE_PATTERN = re.compile(r"\bCodeQL\b|\bSemgrep\b", flags=re.IGNORECASE)
 
 
 def severity_cn(value: Any) -> str:
@@ -61,7 +75,18 @@ def severity_cn(value: Any) -> str:
 
 def sanitize_public_text(value: Any) -> str:
     text = str(value or "")
-    return _PROVIDER_PATTERN.sub("内部安全知识", text)
+    urls: list[str] = []
+
+    def protect_url(match: re.Match[str]) -> str:
+        urls.append(match.group(0))
+        return f"__SECFLOW_PUBLIC_URL_{len(urls) - 1}__"
+
+    text = re.sub(r"https?://[^\s,，；;）)]+", protect_url, text)
+    text = _PROVIDER_PATTERN.sub("内部安全知识", text)
+    text = _ENGINE_PATTERN.sub("静态代码路径分析", text)
+    for index, url in enumerate(urls):
+        text = text.replace(f"__SECFLOW_PUBLIC_URL_{index}__", url)
+    return text
 
 
 def public_answer_payload(answer: dict[str, Any]) -> dict[str, Any]:
@@ -71,7 +96,7 @@ def public_answer_payload(answer: dict[str, Any]) -> dict[str, Any]:
     payload.pop("sources", None)
 
     mode = str(payload.get("mode") or "")
-    if mode in {"vulnerability_lookup", "vulnerability_year_lookup"}:
+    if mode in {"vulnerability_lookup", "vulnerability_year_lookup", "dependency_vulnerability_report"}:
         # Structured cards contain every customer-facing vulnerability fact. Raw
         # records stay server-side because they can disclose collection topology.
         payload.pop("records", None)
@@ -84,23 +109,45 @@ def public_answer_payload(answer: dict[str, Any]) -> dict[str, Any]:
             }
 
     card = payload.get("vulnerability_card")
-    if isinstance(card, dict):
+    if isinstance(card, dict) and card:
         card["严重等级"] = severity_cn(card.get("严重等级"))
 
     return payload
 
 
-def _sanitize(value: Any) -> Any:
+def _sanitize(value: Any, path: tuple[str, ...] = ()) -> Any:
     if isinstance(value, dict):
         cleaned: dict[str, Any] = {}
         for key, item in value.items():
             key_text = str(key)
-            if key_text in _PRIVATE_KEYS or key_text.lower() in _PRIVATE_KEYS_LOWER:
+            item_path = (*path, key_text)
+            if _is_private_key(key_text) and not _is_knowledge_graph_edge_source(item_path):
                 continue
-            cleaned[key_text] = _sanitize(item)
+            cleaned[key_text] = _sanitize(item, item_path)
         return cleaned
     if isinstance(value, list):
-        return [_sanitize(item) for item in value]
+        return [_sanitize(item, (*path, "[]")) for item in value]
     if isinstance(value, str):
+        if path[-2:] == ("vulnerability_card", "参考链接"):
+            return _public_reference_links_text(value)
         return sanitize_public_text(value)
     return value
+
+
+def _is_private_key(key: str) -> bool:
+    return key in _PRIVATE_KEYS or key.lower() in _PRIVATE_KEYS_LOWER
+
+
+def _is_knowledge_graph_edge_source(path: tuple[str, ...]) -> bool:
+    return path == ("knowledge_graph", "edges", "[]", "source")
+
+
+def _public_reference_links_text(value: str) -> str:
+    links: list[str] = []
+    seen: set[str] = set()
+    for match in re.findall(r"https?://[^\s,，；;）)]+", value or ""):
+        link = match.rstrip("。.,，；;")
+        if link and link not in seen:
+            links.append(link)
+            seen.add(link)
+    return "\n".join(links) if links else "未明确"

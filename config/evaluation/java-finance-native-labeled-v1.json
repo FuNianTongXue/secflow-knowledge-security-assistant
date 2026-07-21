@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "description": "Hand-labeled semantic regression corpus for native Java finance CFG/DFG analysis.",
+  "positive_directory": "test-fixtures/java-finance-native/positive",
+  "negative_directory": "test-fixtures/java-finance-native/negative",
+  "labels": {
+    "positive": "At least one idempotency, transaction-consistency, or finance state-race finding is expected.",
+    "negative": "No native finance finding is expected."
+  },
+  "expected_positive_scenarios": [
+    "idempotency_missing",
+    "funds_transaction_boundary",
+    "funds_state_transition_race"
+  ],
+  "independence_note": "Files are independently labeled templates. Symbol-renamed variants are regression expansions, not independent real-world observations."
+}

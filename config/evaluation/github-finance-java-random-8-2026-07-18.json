@@ -1,0 +1,58 @@
+[
+  {
+    "slug": "myNameIssls/payment-system",
+    "url": "https://github.com/myNameIssls/payment-system.git",
+    "html_url": "https://github.com/myNameIssls/payment-system",
+    "stars": 32,
+    "selection_reason": "随机池命中 payment 主题，项目描述包含开户、入金、出金、转账支付、交易明细。"
+  },
+  {
+    "slug": "shurjopay-plugins/sp-plugin-spring",
+    "url": "https://github.com/shurjopay-plugins/sp-plugin-spring.git",
+    "html_url": "https://github.com/shurjopay-plugins/sp-plugin-spring",
+    "stars": 20,
+    "selection_reason": "随机池命中 payment-gateway / Spring 支付插件。"
+  },
+  {
+    "slug": "Midtrans/midtrans-java",
+    "url": "https://github.com/Midtrans/midtrans-java.git",
+    "html_url": "https://github.com/Midtrans/midtrans-java",
+    "stars": 37,
+    "selection_reason": "随机池命中官方 Java 支付 API client。"
+  },
+  {
+    "slug": "grzegorz103/virtual-bank-system",
+    "url": "https://github.com/grzegorz103/virtual-bank-system.git",
+    "html_url": "https://github.com/grzegorz103/virtual-bank-system",
+    "stars": 19,
+    "selection_reason": "随机池命中 bank / banking 应用。"
+  },
+  {
+    "slug": "mohamed-taman/Harvest-Bank",
+    "url": "https://github.com/mohamed-taman/Harvest-Bank.git",
+    "html_url": "https://github.com/mohamed-taman/Harvest-Bank",
+    "stars": 23,
+    "selection_reason": "随机池命中 Spring Boot banking system。"
+  },
+  {
+    "slug": "yeswanth-ares/bankManagement-JAVA-SQL-",
+    "url": "https://github.com/yeswanth-ares/bankManagement-JAVA-SQL-.git",
+    "html_url": "https://github.com/yeswanth-ares/bankManagement-JAVA-SQL-",
+    "stars": 57,
+    "selection_reason": "随机池命中 ATM 风格银行系统，包含 deposit / withdrawal。"
+  },
+  {
+    "slug": "Nuralam51/Spring-Boot-Payment-Gateway",
+    "url": "https://github.com/Nuralam51/Spring-Boot-Payment-Gateway.git",
+    "html_url": "https://github.com/Nuralam51/Spring-Boot-Payment-Gateway",
+    "stars": 21,
+    "selection_reason": "随机池命中 Spring Boot PayPal 支付集成。"
+  },
+  {
+    "slug": "Kavindulakmal/MicroServices-SpringBoot",
+    "url": "https://github.com/Kavindulakmal/MicroServices-SpringBoot.git",
+    "html_url": "https://github.com/Kavindulakmal/MicroServices-SpringBoot",
+    "stars": 19,
+    "selection_reason": "随机池命中在线电费支付微服务。"
+  }
+]

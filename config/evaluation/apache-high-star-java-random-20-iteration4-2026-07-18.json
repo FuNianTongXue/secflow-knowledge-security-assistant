@@ -1,0 +1,142 @@
+[
+  {
+    "slug": "apache/geode",
+    "url": "https://github.com/apache/geode.git",
+    "ref": "87a6d4df243f910b547664d07a81c9dc0edc47ce",
+    "stars": 2369,
+    "default_branch": "develop"
+  },
+  {
+    "slug": "apache/kafka",
+    "url": "https://github.com/apache/kafka.git",
+    "ref": "05cbe688f75aadd1fb58b9d093201f7aa9e174c2",
+    "stars": 33248,
+    "default_branch": "trunk"
+  },
+  {
+    "slug": "apache/lucene",
+    "url": "https://github.com/apache/lucene.git",
+    "ref": "99fc6a17929b7b8eae537d70ad7644a44811c150",
+    "stars": 3510,
+    "default_branch": "main"
+  },
+  {
+    "slug": "apache/rocketmq-spring",
+    "url": "https://github.com/apache/rocketmq-spring.git",
+    "ref": "a9f294bd40fca5d401b7ed02b60cf62f6ac74cf5",
+    "stars": 2271,
+    "default_branch": "master"
+  },
+  {
+    "slug": "apache/hbase",
+    "url": "https://github.com/apache/hbase.git",
+    "ref": "d068711a69f77c97adcf6c05ed60883d4a099dc8",
+    "stars": 5543,
+    "default_branch": "master"
+  },
+  {
+    "slug": "apache/hadoop",
+    "url": "https://github.com/apache/hadoop.git",
+    "ref": "6f5d1374efbf16a1f265ae761a4cd637c8d80c34",
+    "stars": 15607,
+    "default_branch": "trunk"
+  },
+  {
+    "slug": "apache/cassandra-java-driver",
+    "url": "https://github.com/apache/cassandra-java-driver.git",
+    "ref": "ab22858095651f2b1950f81b1e6345ca82d68240",
+    "stars": 1380,
+    "default_branch": "4.x"
+  },
+  {
+    "slug": "apache/linkis",
+    "url": "https://github.com/apache/linkis.git",
+    "ref": "974438c957554ad025e4ac4af0f30bac91574c29",
+    "stars": 3407,
+    "default_branch": "master"
+  },
+  {
+    "slug": "apache/inlong",
+    "url": "https://github.com/apache/inlong.git",
+    "ref": "34cf0360ab17c8d7b894fe2f8a69cd6cc5dc5ad9",
+    "stars": 1492,
+    "default_branch": "master"
+  },
+  {
+    "slug": "apache/gravitino",
+    "url": "https://github.com/apache/gravitino.git",
+    "ref": "58636323726cc519e6a7127ec0ae324025b9ae05",
+    "stars": 3078,
+    "default_branch": "main"
+  },
+  {
+    "slug": "apache/commons-lang",
+    "url": "https://github.com/apache/commons-lang.git",
+    "ref": "d8d0a028ce1469a93d2a6aa835c305eba22d8338",
+    "stars": 2983,
+    "default_branch": "master"
+  },
+  {
+    "slug": "apache/iceberg",
+    "url": "https://github.com/apache/iceberg.git",
+    "ref": "8550723a766994118e2537a0c69d4742d61dce94",
+    "stars": 9054,
+    "default_branch": "main"
+  },
+  {
+    "slug": "apache/drill",
+    "url": "https://github.com/apache/drill.git",
+    "ref": "09ff1949aac7282dafec0f10ae16669b4f7d8c08",
+    "stars": 2019,
+    "default_branch": "master"
+  },
+  {
+    "slug": "apache/skywalking",
+    "url": "https://github.com/apache/skywalking.git",
+    "ref": "f9edc58aef0b5eb50fd5dd477010f55156651858",
+    "stars": 24877,
+    "default_branch": "master"
+  },
+  {
+    "slug": "apache/httpcomponents-client",
+    "url": "https://github.com/apache/httpcomponents-client.git",
+    "ref": "1e18d54bb0fefbfd5c96d7f7fd7af3668d8e5df9",
+    "stars": 1531,
+    "default_branch": "master"
+  },
+  {
+    "slug": "apache/hop",
+    "url": "https://github.com/apache/hop.git",
+    "ref": "5bc9e9e999be497e92c405ef97fa8f4ba8a167bd",
+    "stars": 1418,
+    "default_branch": "main"
+  },
+  {
+    "slug": "apache/doris",
+    "url": "https://github.com/apache/doris.git",
+    "ref": "163a4a577e7fe4ffe8b7175582abefaf8bb855ea",
+    "stars": 15622,
+    "default_branch": "master"
+  },
+  {
+    "slug": "apache/jmeter",
+    "url": "https://github.com/apache/jmeter.git",
+    "ref": "b49d6bbb6ddc77f8de9c54ccff446b3e0844be30",
+    "stars": 9468,
+    "default_branch": "master"
+  },
+  {
+    "slug": "apache/calcite",
+    "url": "https://github.com/apache/calcite.git",
+    "ref": "9acb3745c61db9bb01a7427df64cd5d2a0834a96",
+    "stars": 5155,
+    "default_branch": "main"
+  },
+  {
+    "slug": "apache/beam",
+    "url": "https://github.com/apache/beam.git",
+    "ref": "7eef1304b19c5a47c12354476c4319df5183908d",
+    "stars": 8630,
+    "default_branch": "master"
+  }
+]

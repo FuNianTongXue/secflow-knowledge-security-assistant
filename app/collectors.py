@@ -7,17 +7,17 @@ from typing import Any
 
 import httpx
 
+from app.intelligence_runtime import default_headers, intelligence_endpoint
 from app.models import CollectorConfigUpdate
 from app.storage import now_iso, store
 
 
 class CollectorService:
     def snapshot(self) -> dict[str, Any]:
-        state = store.public_state()
         return {
-            "collectors": state["collectors"],
-            "records": state["records"],
-            "stats": self._stats(state["records"]),
+            "collectors": {},
+            "records": [],
+            "stats": self._stats([]),
         }
 
     def update_config(self, collector_id: str, payload: CollectorConfigUpdate) -> dict[str, Any]:
@@ -65,91 +65,83 @@ class CollectorService:
         if collector_id not in state["collectors"]:
             raise KeyError(collector_id)
         config = state["collectors"][collector_id]
+        trace = [_collector_trace("validate_config", "接口配置已读取，执行实时查询。")]
         if not config.get("enabled", True):
-            return {"status": "warning", "message": f"{config['name']} is disabled.", "inserted": 0}
-        credential_error = _credential_error(collector_id, config)
-        if credential_error:
-            return {"status": "warning", "message": credential_error, "inserted": 0, "fetched": 0, "records": []}
-
-        if collector_id == "cve":
-            records = self._collect_cve(config)
-        elif collector_id == "github_advisory":
-            records = self._collect_github_advisory(config)
-        else:
-            raise KeyError(collector_id)
-
-        existing = {str(item["id"]).lower(): item for item in state["records"]}
-        inserted = 0
-        for record in records:
-            key = str(record["id"]).lower()
-            if key not in existing:
-                state["records"].append(record)
-                inserted += 1
+            return {
+                "status": "warning",
+                "message": "接口已停用，未执行查询。",
+                "inserted": 0,
+                "fetched": 0,
+                "records": [],
+                "years": [],
+                "errors": [],
+                "trace": [*trace, _collector_trace("compose_result", "接口查询已跳过。", "warning")],
+            }
+        try:
+            if collector_id == "cve":
+                records = self._collect_cve(config)
+            elif collector_id == "github_advisory":
+                records = self._collect_github_advisory(config)
             else:
-                existing[key].update(record)
-        config["last_collect"] = {"status": "success", "inserted": inserted, "fetched": len(records), "checked_at": now_iso()}
-        store.write(state)
-        return {
-            "status": "success",
-            "message": f"{config['name']} collection finished.",
-            "inserted": inserted,
-            "fetched": len(records),
-            "records": records[:5],
-        }
+                raise KeyError(collector_id)
+            status = "success" if records else "warning"
+            return {
+                "status": status,
+                "message": f"API query finished with {len(records)} record(s). No local vulnerability storage was written.",
+                "inserted": 0,
+                "fetched": len(records),
+                "records": records,
+                "years": [],
+                "errors": [],
+                "trace": [
+                    *trace,
+                    _collector_trace("query_api", f"接口返回 {len(records)} 条漏洞记录。", status),
+                    _collector_trace("compose_result", "实时接口查询结果已汇总。", status),
+                ],
+            }
+        except Exception as exc:  # noqa: BLE001
+            return {
+                "status": "failed",
+                "message": str(exc),
+                "inserted": 0,
+                "fetched": 0,
+                "records": [],
+                "years": [],
+                "errors": [str(exc)],
+                "trace": [*trace, _collector_trace("query_api", str(exc), "failed")],
+            }
 
     def collect_cve_by_years(self, years: list[int], max_results: int = 20) -> dict[str, Any]:
         state = store.read()
-        config = state["collectors"].get("cve")
-        if not config:
-            raise KeyError("cve")
-        if not config.get("enabled", True):
-            return {"status": "warning", "message": "CVE collector is disabled.", "inserted": 0, "fetched": 0, "records": []}
-        credential_error = _credential_error("cve", config)
-        if credential_error:
-            return {"status": "warning", "message": credential_error, "inserted": 0, "fetched": 0, "records": []}
-
-        collected: list[dict[str, Any]] = []
+        config = state["collectors"]["cve"]
+        records: list[dict[str, Any]] = []
         errors: list[str] = []
-        per_year_limit = max(1, min(max_results, int(config.get("max_results", 20))))
-        for year in sorted(set(years), reverse=True):
+        for year in years:
             try:
-                collected.extend(self._collect_cve(config, year=year, max_results=per_year_limit))
-            except Exception as exc:  # noqa: BLE001 - keep successful years when one source window fails.
+                records.extend(self._collect_cve(config, year=year, max_results=max_results))
+            except Exception as exc:  # noqa: BLE001
                 errors.append(f"{year}: {exc}")
-
-        deduped: dict[str, dict[str, Any]] = {}
-        for record in collected:
-            deduped[str(record["id"]).lower()] = record
-        records = sorted(deduped.values(), key=_record_sort_key, reverse=True)[:max_results]
-
-        existing = {str(item["id"]).lower(): item for item in state["records"]}
-        inserted = 0
-        for record in records:
-            key = str(record["id"]).lower()
-            if key not in existing:
-                state["records"].append(record)
-                inserted += 1
-            else:
-                existing[key].update(record)
-
-        status = "success" if records else "warning" if errors else "success"
-        config["last_collect"] = {
-            "status": status,
-            "inserted": inserted,
-            "fetched": len(records),
-            "years": sorted(set(years), reverse=True),
-            "errors": errors,
-            "checked_at": now_iso(),
-        }
-        store.write(state)
+        status = "warning" if errors else "success"
+        if not records and errors:
+            status = "failed"
         return {
             "status": status,
-            "message": "CVE year collection finished." if not errors else f"CVE year collection completed with {len(errors)} failed year(s).",
-            "inserted": inserted,
+            "message": f"API year query finished with {len(records)} record(s). No local vulnerability storage was written.",
+            "inserted": 0,
             "fetched": len(records),
             "records": records,
+            "years": years,
             "errors": errors,
+            "trace": [
+                _collector_trace("validate_config", "接口配置已读取，执行年份实时查询。"),
+                _collector_trace("query_api", f"接口返回 {len(records)} 条漏洞记录。", status),
+                _collector_trace("compose_result", "年份接口查询结果已汇总。", status),
+            ],
         }
+
+    @staticmethod
+    def credential_error(collector_id: str, config: dict[str, Any]) -> str:
+        return _credential_error(collector_id, config)
 
     @staticmethod
     def search(question: str, top_k: int = 5) -> list[dict[str, Any]]:
@@ -217,26 +209,26 @@ class CollectorService:
     @staticmethod
     def _test_cve(config: dict[str, Any]) -> dict[str, Any]:
         params = {"resultsPerPage": "1"}
-        headers = {"User-Agent": "SecFlow-Knowledge-Security-Assistant/1.0"}
+        headers = default_headers()
         if config.get("api_key"):
             headers["apiKey"] = config["api_key"]
         with httpx.Client(timeout=12.0, follow_redirects=True) as client:
-            response = client.get(config["api_url"], params=params, headers=headers)
+            response = client.get(_collector_endpoint(config, "api_primary"), params=params, headers=headers)
             response.raise_for_status()
-        return {"status": "success", "message": "NVD CVE API is reachable.", "checked_at": now_iso()}
+        return {"status": "success", "message": "固定接口可访问。", "checked_at": now_iso()}
 
     @staticmethod
     def _test_github_advisory(config: dict[str, Any]) -> dict[str, Any]:
-        headers = {"Accept": "application/vnd.github+json", "User-Agent": "SecFlow-Knowledge-Security-Assistant/1.0"}
+        headers = default_headers(auth="secondary")
         if config.get("token"):
             headers["Authorization"] = f"Bearer {config['token']}"
         with httpx.Client(timeout=12.0, follow_redirects=True) as client:
-            response = client.get(config["api_url"], params={"per_page": "1"}, headers=headers)
+            response = client.get(_collector_endpoint(config, "api_secondary"), params={"per_page": "1"}, headers=headers)
             response.raise_for_status()
-        return {"status": "success", "message": "GitHub Advisory API is reachable.", "checked_at": now_iso()}
+        return {"status": "success", "message": "固定接口可访问。", "checked_at": now_iso()}
 
     def _collect_cve(self, config: dict[str, Any], year: int | None = None, max_results: int | None = None) -> list[dict[str, Any]]:
-        headers = {"User-Agent": "SecFlow-Knowledge-Security-Assistant/1.0"}
+        headers = default_headers()
         if config.get("api_key"):
             headers["apiKey"] = config["api_key"]
         limit = min(int(max_results or config.get("max_results", 20)), 200)
@@ -251,13 +243,13 @@ class CollectorService:
                 if start and end:
                     params["pubStartDate"] = _nvd_datetime(start)
                     params["pubEndDate"] = _nvd_datetime(end)
-                response = client.get(config["api_url"], params=params, headers=headers)
+                response = client.get(_collector_endpoint(config, "api_primary"), params=params, headers=headers)
                 response.raise_for_status()
                 data = response.json()
                 total_results = int(data.get("totalResults") or 0)
                 if total_results > page_size:
                     params["startIndex"] = str(max(0, total_results - page_size))
-                    response = client.get(config["api_url"], params=params, headers=headers)
+                    response = client.get(_collector_endpoint(config, "api_primary"), params=params, headers=headers)
                     response.raise_for_status()
                     data = response.json()
                 for item in data.get("vulnerabilities", []):
@@ -269,15 +261,15 @@ class CollectorService:
                     break
         return sorted(records.values(), key=_record_sort_key, reverse=True)[:limit]
 
-    def _collect_github_advisory(self, config: dict[str, Any]) -> list[dict[str, Any]]:
-        headers = {"Accept": "application/vnd.github+json", "User-Agent": "SecFlow-Knowledge-Security-Assistant/1.0"}
+    def _collect_github_advisory(self, config: dict[str, Any], max_results: int | None = None) -> list[dict[str, Any]]:
+        headers = default_headers(auth="secondary")
         if config.get("token"):
             headers["Authorization"] = f"Bearer {config['token']}"
-        params = {"per_page": str(min(int(config.get("max_results", 20)), 100))}
+        params = {"per_page": str(min(int(max_results or config.get("max_results", 20)), 100))}
         if config.get("ecosystem"):
             params["ecosystem"] = config["ecosystem"]
         with httpx.Client(timeout=30.0, follow_redirects=True) as client:
-            response = client.get(config["api_url"], params=params, headers=headers)
+            response = client.get(_collector_endpoint(config, "api_secondary"), params=params, headers=headers)
             response.raise_for_status()
             data = response.json()
         records: list[dict[str, Any]] = []
@@ -297,7 +289,7 @@ class CollectorService:
                     "title": item.get("summary") or ghsa_id,
                     "severity": severity,
                     "cvss_score": _github_cvss_score(item),
-                    "source": "GitHub Advisory",
+                    "source": "fixed-api",
                     "summary": item.get("description") or item.get("summary") or "",
                     "affected_versions": affected_versions,
                     "fixed_versions": fixed_versions,
@@ -318,11 +310,16 @@ def _description(cve: dict[str, Any]) -> str:
 
 
 def _credential_error(collector_id: str, config: dict[str, Any]) -> str:
-    if collector_id == "cve" and not str(config.get("api_key") or "").strip():
-        return "请先填写并保存 CVE API Key，保存后才能测试或采集漏洞情报。"
-    if collector_id == "github_advisory" and not str(config.get("token") or "").strip():
-        return "请先填写并保存 GitHub Token，保存后才能测试或采集漏洞情报。"
     return ""
+
+
+def _collector_endpoint(config: dict[str, Any], endpoint_name: str) -> str:
+    configured = str(config.get("api_url") or "").strip()
+    return configured or intelligence_endpoint(endpoint_name)
+
+
+def _collector_trace(node: str, message: str, status: str = "completed") -> dict[str, str]:
+    return {"node": f"collector.{node}", "status": status, "message": message, "time": now_iso()}
 
 
 def _nvd_record(cve: dict[str, Any], config: dict[str, Any], year: int | None) -> dict[str, Any] | None:
@@ -337,10 +334,10 @@ def _nvd_record(cve: dict[str, Any], config: dict[str, Any], year: int | None) -
         "title": summary[:160] or cve_id,
         "severity": _nvd_severity(cve),
         "cvss_score": _nvd_cvss_score(cve),
-        "source": "NVD",
+        "source": "fixed-api",
         "summary": summary,
         "affected_versions": _nvd_affected_versions(cve),
-        "fixed_versions": [],
+        "fixed_versions": _nvd_fixed_versions(cve),
         "references": _nvd_references(cve),
         "collection": config.get("collection_name", "cve"),
         "published_at": cve.get("published") or "",
@@ -382,7 +379,7 @@ def _nvd_cvss_score(cve: dict[str, Any]) -> float | None:
 
 
 def _nvd_affected_versions(cve: dict[str, Any]) -> list[str]:
-    """Extract only concrete version facts; wildcard CPE versions are never exposed."""
+    """Extract version facts from legacy CPE and current CNA/NVD records."""
 
     values: list[str] = []
     for configuration in cve.get("configurations") or []:
@@ -409,7 +406,219 @@ def _nvd_affected_versions(cve: dict[str, Any]) -> list[str]:
                 label = f"{product} {version_text}".strip()
                 if label and label not in values:
                     values.append(label)
+    modern_affected, _modern_fixed = _nvd_modern_version_facts(cve)
+    for value in modern_affected:
+        if value not in values:
+            values.append(value)
     return values[:12]
+
+
+def _nvd_fixed_versions(cve: dict[str, Any]) -> list[str]:
+    """Return only fixed versions explicitly stated by structured or CNA text facts."""
+
+    _affected, structured_fixed = _nvd_modern_version_facts(cve)
+    entries = _nvd_modern_affected_entries(cve)
+    component_labels = _unique_text(
+        _nvd_modern_component_label(entry)
+        for entry in entries
+        if _nvd_modern_component_label(entry)
+    )
+    text_fixed = _explicit_fixed_versions(_description(cve))
+    if len(component_labels) == 1:
+        text_fixed = [f"{component_labels[0]} {version}" for version in text_fixed]
+    return _unique_text([*structured_fixed, *text_fixed])[:12]
+
+
+def _nvd_modern_components(cve: dict[str, Any]) -> list[dict[str, Any]]:
+    """Normalize CNA affected products into the component contract used by the graph."""
+
+    components: dict[str, dict[str, Any]] = {}
+    entries = _nvd_modern_affected_entries(cve)
+    for entry in entries:
+        name = str(entry.get("product") or entry.get("packageName") or entry.get("package") or "").strip()
+        vendor = str(entry.get("vendor") or entry.get("collectionURL") or "").strip()
+        ecosystem = _nvd_modern_ecosystem(entry) or vendor or "generic"
+        if not name or name in {"*", "-", "n/a"}:
+            continue
+        affected, fixed = _nvd_entry_version_facts(entry, include_component=False)
+        key = f"{ecosystem}:{name}".lower()
+        component = components.setdefault(
+            key,
+            {"name": name, "ecosystem": ecosystem, "affected": [], "fixed": []},
+        )
+        component["affected"] = _unique_text([*component["affected"], *affected])
+        component["fixed"] = _unique_text([*component["fixed"], *fixed])
+
+    if len(components) == 1:
+        component = next(iter(components.values()))
+        component["fixed"] = _unique_text(
+            [*component["fixed"], *_explicit_fixed_versions(_description(cve))]
+        )
+    return list(components.values())[:20]
+
+
+def _nvd_modern_version_facts(cve: dict[str, Any]) -> tuple[list[str], list[str]]:
+    affected: list[str] = []
+    fixed: list[str] = []
+    for entry in _nvd_modern_affected_entries(cve):
+        entry_affected, entry_fixed = _nvd_entry_version_facts(entry, include_component=True)
+        affected.extend(entry_affected)
+        fixed.extend(entry_fixed)
+    return _unique_text(affected)[:12], _unique_text(fixed)[:12]
+
+
+def _nvd_modern_affected_entries(cve: dict[str, Any]) -> list[dict[str, Any]]:
+    """Accept NVD's affectedData wrapper and native CVE 5 container records."""
+
+    entries: list[dict[str, Any]] = []
+
+    def append_items(values: Any) -> None:
+        if not isinstance(values, list):
+            return
+        for value in values:
+            if not isinstance(value, dict):
+                continue
+            affected_data = value.get("affectedData")
+            if isinstance(affected_data, list):
+                entries.extend(item for item in affected_data if isinstance(item, dict))
+            elif value.get("versions") or value.get("product") or value.get("packageName"):
+                entries.append(value)
+
+    append_items(cve.get("affected"))
+    containers = cve.get("containers") or {}
+    if isinstance(containers, dict):
+        cna = containers.get("cna") or {}
+        if isinstance(cna, dict):
+            append_items(cna.get("affected"))
+        for provider in containers.get("adp") or []:
+            if isinstance(provider, dict):
+                append_items(provider.get("affected"))
+
+    unique: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for entry in entries:
+        key = repr(
+            (
+                entry.get("vendor"),
+                entry.get("product"),
+                entry.get("packageName"),
+                entry.get("versions"),
+            )
+        )
+        if key not in seen:
+            unique.append(entry)
+            seen.add(key)
+    return unique
+
+
+def _nvd_entry_version_facts(entry: dict[str, Any], *, include_component: bool) -> tuple[list[str], list[str]]:
+    affected: list[str] = []
+    fixed: list[str] = []
+    prefix = _nvd_modern_component_label(entry) if include_component else ""
+    default_status = str(entry.get("defaultStatus") or "").strip().lower()
+    for item in entry.get("versions") or []:
+        if not isinstance(item, dict):
+            continue
+        status = str(item.get("status") or "unknown").strip().lower()
+        version_text = _nvd_version_range_text(item)
+        if status == "affected" and version_text:
+            affected.append(_prefixed_version(prefix, version_text))
+        elif status in {"fixed", "unaffected"}:
+            concrete = _concrete_version(str(item.get("version") or ""))
+            if concrete:
+                fixed.append(_prefixed_version(prefix, concrete))
+
+        if status == "affected" and default_status in {"fixed", "unaffected"}:
+            boundary = _concrete_version(str(item.get("lessThan") or ""))
+            if boundary:
+                fixed.append(_prefixed_version(prefix, boundary))
+
+        current_status = status
+        for change in item.get("changes") or []:
+            if not isinstance(change, dict):
+                continue
+            next_status = str(change.get("status") or "").strip().lower()
+            at = _concrete_version(str(change.get("at") or ""))
+            if current_status == "affected" and next_status in {"fixed", "unaffected"} and at:
+                fixed.append(_prefixed_version(prefix, at))
+            current_status = next_status or current_status
+    return _unique_text(affected), _unique_text(fixed)
+
+
+def _nvd_version_range_text(item: dict[str, Any]) -> str:
+    version = str(item.get("version") or "").strip()
+    less_than = str(item.get("lessThan") or "").strip()
+    less_equal = str(item.get("lessThanOrEqual") or "").strip()
+    lower = "" if version in {"", "*", "-", "0"} else version
+    if less_than:
+        return f">= {lower}, < {less_than}" if lower else f"< {less_than}"
+    if less_equal:
+        return f">= {lower}, <= {less_equal}" if lower else f"<= {less_equal}"
+    return version if version not in {"", "*", "-"} else ""
+
+
+def _nvd_modern_component_label(entry: dict[str, Any]) -> str:
+    vendor = str(entry.get("vendor") or "").strip()
+    product = str(entry.get("product") or entry.get("packageName") or entry.get("package") or "").strip()
+    if vendor.lower() == product.lower():
+        vendor = ""
+    return " ".join(value for value in (vendor, product) if value and value not in {"*", "-", "n/a"})
+
+
+def _nvd_modern_ecosystem(entry: dict[str, Any]) -> str:
+    purl = str(entry.get("packageURL") or entry.get("packageUrl") or entry.get("purl") or "").strip()
+    match = re.match(r"pkg:([A-Za-z0-9.+-]+)/", purl)
+    return match.group(1) if match else ""
+
+
+def _explicit_fixed_versions(text: str) -> list[str]:
+    """Extract release versions only from sentences that explicitly state a fix."""
+
+    versions: list[str] = []
+    sentences = re.split(r"(?<=[.!?。！？])\s+|[\r\n]+", str(text or ""))
+    fix_markers = re.compile(
+        r"(?:\bfixed\b|\bpatched\b|\bresolved\b|\baddressed\b|修复(?:版本)?|修补(?:版本)?|补丁版本)",
+        flags=re.IGNORECASE,
+    )
+    version_pattern = re.compile(r"(?<![A-Za-z0-9_-])v?(\d+(?:\.\d+){1,3}(?:[-+][0-9A-Za-z.-]+)?)(?![A-Za-z0-9_-])")
+    for sentence in sentences:
+        if re.search(
+            r"(?:partial(?:ly)?|incomplete|not\s+fully|not\s+completely|attempted).{0,40}(?:fixed|patched)"
+            r"|(?:fixed|patched).{0,40}(?:partial(?:ly)?|incomplete|not\s+fully|not\s+completely)",
+            sentence,
+            flags=re.IGNORECASE,
+        ):
+            continue
+        marker = fix_markers.search(sentence)
+        if not marker:
+            continue
+        tail = sentence[marker.start():]
+        for value in version_pattern.findall(tail):
+            if value not in versions:
+                versions.append(value)
+            if len(versions) >= 12:
+                return versions
+    return versions
+
+
+def _concrete_version(value: str) -> str:
+    clean = value.strip().lstrip("vV")
+    if not clean or clean in {"*", "-", "0"} or any(token in clean for token in ("<", ">", "=", ",", " ")):
+        return ""
+    return clean if re.fullmatch(r"\d+(?:\.\d+){1,3}(?:[-+][0-9A-Za-z.-]+)?", clean) else ""
+
+
+def _prefixed_version(prefix: str, version: str) -> str:
+    return f"{prefix} {version}".strip()
+
+
+def _unique_text(values: Any) -> list[str]:
+    result: list[str] = []
+    for value in values:
+        text = str(value or "").strip()
+        if text and text not in result:
+            result.append(text)
+    return result
 
 
 def _github_version_facts(item: dict[str, Any]) -> tuple[list[str], list[str]]:
@@ -426,7 +635,10 @@ def _github_version_facts(item: dict[str, Any]) -> tuple[list[str], list[str]]:
             if label not in affected:
                 affected.append(label)
         first_patched = vulnerability.get("first_patched_version") or {}
-        identifier = str(first_patched.get("identifier") or "").strip()
+        if isinstance(first_patched, dict):
+            identifier = str(first_patched.get("identifier") or "").strip()
+        else:
+            identifier = str(first_patched).strip()
         if identifier:
             label = f"{prefix}: {identifier}" if prefix else identifier
             if label not in fixed:
@@ -491,3 +703,9 @@ def _severity_score(severity: str) -> int:
 
 
 collector_service = CollectorService()
+
+# Import after the adapters are defined so the graph can reuse them without a
+# module import cycle.
+from app.collector_graph import CollectorGraph  # noqa: E402
+
+collector_graph = CollectorGraph(collector_service)

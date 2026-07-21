@@ -1,0 +1,71 @@
+rules:
+  - id: secflow.solidity.tx-origin-authorization
+    languages: [solidity]
+    severity: ERROR
+    message: 使用 tx.origin 执行授权判断，可能被中间合约绕过。
+    metadata:
+      category: security
+      scenario: broken_access_control
+      cwe: [CWE-346]
+      owasp: [A01:2021]
+      confidence: HIGH
+      remediation: 使用 msg.sender，并配合明确的角色或所有权校验。
+    pattern: tx.origin
+
+  - id: secflow.solidity.unchecked-low-level-call
+    languages: [solidity]
+    severity: ERROR
+    message: 低级 call 返回值未被检查，调用失败可能被静默忽略。
+    metadata:
+      category: security
+      scenario: unchecked_external_call
+      cwe: [CWE-252]
+      owasp: [A04:2021]
+      confidence: MEDIUM
+      remediation: 检查 call 返回的 success，并在失败时回滚交易。
+    patterns:
+      - pattern: $TARGET.call(...)
+      - pattern-not-inside: |
+          ($SUCCESS, ...) = $TARGET.call(...);
+          ...
+
+  - id: secflow.solidity.delegatecall-user-target
+    languages: [solidity]
+    severity: ERROR
+    message: delegatecall 目标可能受外部输入控制，可能在当前合约存储上下文执行不可信代码。
+    metadata:
+      category: security
+      scenario: delegatecall
+      cwe: [CWE-829]
+      owasp: [A08:2021]
+      confidence: MEDIUM
+      remediation: 将实现地址限制为经治理批准的固定地址，并保护升级入口。
+    pattern: $TARGET.delegatecall(...)
+
+  - id: secflow.solidity.selfdestruct
+    languages: [solidity]
+    severity: ERROR
+    message: 合约包含 selfdestruct，可能导致资产或代码生命周期风险。
+    metadata:
+      category: security
+      scenario: dangerous_lifecycle
+      cwe: [CWE-284]
+      owasp: [A01:2021]
+      confidence: MEDIUM
+      remediation: 移除 selfdestruct；如确有需要，使用严格角色控制、时间锁和事件审计。
+    pattern-either:
+      - pattern: selfdestruct(...)
+      - pattern: suicide(...)
+
+  - id: secflow.solidity.timestamp-dependence
+    languages: [solidity]
+    severity: WARNING
+    message: block.timestamp 参与关键授权、随机性或价值计算，可能受区块生产者有限操纵。
+    metadata:
+      category: security
+      scenario: timestamp_dependence
+      cwe: [CWE-829]
+      owasp: [A04:2021]
+      confidence: LOW
+      remediation: 不要将区块时间作为随机源；关键时间条件应接受合理偏差并结合预言机或提交揭示机制。
+    pattern: block.timestamp

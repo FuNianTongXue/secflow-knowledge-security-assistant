@@ -1,5 +1,9 @@
 const state = {
   config: null,
+  settings: null,
+  trial: null,
+  trialDeadline: 0,
+  trialTimer: null,
   userId: localStorage.getItem("secflowUserId") || "default",
   sessionId: localStorage.getItem("secflowSessionId") || newSessionId(),
 };
@@ -22,9 +26,85 @@ async function api(path, options = {}) {
   });
   const payload = await response.json();
   if (!response.ok) {
-    throw new Error(payload.detail || payload.message || `HTTP ${response.status}`);
+    const blockedTrial = payload.data?.trial;
+    if (response.status === 403 && blockedTrial) renderTrial(blockedTrial);
+    const detail = typeof payload.detail === "string" ? payload.detail : "";
+    throw new Error(detail || payload.message || `HTTP ${response.status}`);
   }
   return payload.data;
+}
+
+async function loadTrial() {
+  const trial = await api("/api/trial/status");
+  renderTrial(trial);
+  return trial;
+}
+
+function renderTrial(trial) {
+  state.trial = trial;
+  const banner = $("#trialBanner");
+  const blocked = $("#trialBlocked");
+  if (!trial?.enabled) {
+    banner.classList.add("hidden");
+    blocked.classList.add("hidden");
+    document.body.classList.remove("trial-is-blocked");
+    stopTrialCountdown();
+    return;
+  }
+
+  banner.classList.remove("hidden");
+  banner.classList.toggle("trial-banner--blocked", !trial.usable);
+  $("#trialMessage").textContent = trial.message || "三天试用版";
+  if (trial.usable) {
+    blocked.classList.add("hidden");
+    document.body.classList.remove("trial-is-blocked");
+    state.trialDeadline = performance.now() + Math.max(0, Number(trial.secondsRemaining || 0)) * 1000;
+    updateTrialCountdown();
+    stopTrialCountdown();
+    state.trialTimer = window.setInterval(updateTrialCountdown, 1000);
+    return;
+  }
+
+  stopTrialCountdown();
+  $("#trialCountdown").textContent = "已停用";
+  $("#trialBlockedMessage").textContent = trial.message || "三天试用期已结束。";
+  $("#trialStartedAt").textContent = formatTrialTime(trial.startedAt);
+  $("#trialExpiresAt").textContent = formatTrialTime(trial.expiresAt);
+  blocked.classList.remove("hidden");
+  document.body.classList.add("trial-is-blocked");
+}
+
+function updateTrialCountdown() {
+  const seconds = Math.max(0, Math.ceil((state.trialDeadline - performance.now()) / 1000));
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+  $("#trialCountdown").textContent = `${days}天 ${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+  if (seconds === 0) {
+    stopTrialCountdown();
+    loadTrial().catch(() => {});
+  }
+}
+
+function stopTrialCountdown() {
+  if (state.trialTimer) window.clearInterval(state.trialTimer);
+  state.trialTimer = null;
+}
+
+function formatTrialTime(value) {
+  if (!value) return "-";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "-";
+  return new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(parsed);
 }
 
 function escapeHtml(value) {
@@ -42,6 +122,23 @@ async function loadConfig() {
   fillCollector("github_advisory", state.config.collectors.github_advisory);
   renderRecords(state.config.records, state.config.stats);
   renderRuntime(state.config.runtime || {});
+}
+
+async function loadBrand() {
+  try {
+    state.settings = await api("/api/settings");
+    const about = state.settings.about || {};
+    const name = about.name || "安全智脑";
+    const subtitle = about.subtitle || "Security AI Assistant";
+    const version = about.version || "1.2.0";
+    const versionLabel = about.version_label || `v${version} 内测版`;
+    document.title = name;
+    $("#brandName").textContent = name;
+    $("#brandSubtitle").textContent = subtitle;
+    $("#brandVersion").textContent = `${name} · ${versionLabel}`;
+  } catch (_) {
+    document.title = "安全智脑";
+  }
 }
 
 function fillCollector(id, config) {
@@ -286,6 +383,7 @@ function modeLabel(mode) {
     supply_chain: "供应链安全回答",
     compliance: "合规安全回答",
     security_knowledge: "安全知识回答",
+    llm_direct: "大模型直接回答",
   }[mode] || mode;
 }
 
@@ -303,6 +401,14 @@ function nodeLabel(node) {
 }
 
 bind();
-loadConfig().catch((error) => {
-  $("#answer").textContent = error.message;
-});
+loadTrial()
+  .then((trial) => {
+    if (!trial.usable) return;
+    loadBrand();
+    loadConfig().catch((error) => {
+      $("#answer").textContent = error.message;
+    });
+  })
+  .catch((error) => {
+    $("#answer").textContent = error.message;
+  });
